@@ -1,0 +1,20 @@
+# 인증키 (절대 커밋 금지)
+.env
+
+# 데이터 (용량·재배포 여부 확인 전까지 제외)
+data/raw/*
+data/interim/*
+!data/raw/_manifest.json
+!data/raw/.gitkeep
+!data/interim/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.ipynb_checkpoints/
+
+# OS/IDE
+.DS_Store
+Thumbs.db
+.vscode/
