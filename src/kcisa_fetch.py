@@ -21,11 +21,14 @@ from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parent.parent
 load_dotenv(ROOT / ".env")
+K = "https://api.kcisa.kr/openapi/"
 APIS = {
-    "linked": ("API_CPM_009", "KCISA_SERVICE_KEY_LINKED"),  # 올림픽공원 2025 차량입출차·공연·날씨 연계
-    "allzone": ("API_CPM_008", "KCISA_SERVICE_KEY_ALLZONE"),  # 올림픽공원 2025 입출차정보(전체구역)
+    "linked": (K + "API_CPM_009/request", "KCISA_SERVICE_KEY_LINKED"),  # 올림픽공원 2025 차량입출차·공연·날씨 연계
+    "allzone": (K + "API_CPM_008/request", "KCISA_SERVICE_KEY_ALLZONE"),  # 올림픽공원 2025 입출차정보(전체구역)
+    "perf": (K + "service/rest/meta/KSCperf", "KCISA_SERVICE_KEY_PERF"),  # 올림픽공원 공연정보
+    "rental": (K + "service/rest/meta12/getKSCD0803", "KCISA_SERVICE_KEY_RENTAL"),  # 올림픽공원 대관정보
+    "ops": (K + "service/rest/meta12/getKSCD0801", "KCISA_SERVICE_KEY_OPS"),  # 올림픽공원 운영현황
 }
-BASE = "https://api.kcisa.kr/openapi/{}/request"
 
 
 def calls_today(d: Path) -> tuple[Path, int]:
@@ -45,7 +48,7 @@ def main():
     ap.add_argument("--sleep", type=float, default=0.5)
     a = ap.parse_args()
 
-    api, env = APIS[a.name]
+    url, env = APIS[a.name]
     key = os.getenv(env, "").strip()
     if not key:
         sys.exit(f".env 에 {env} 가 없음")
@@ -62,7 +65,7 @@ def main():
             print(f"하루 호출 예산 {a.budget} 도달: 중단 (page {page}부터 이어서)")
             break
         try:
-            r = requests.get(BASE.format(api), params={"serviceKey": key, "numOfRows": a.rows, "pageNo": page}, timeout=60)
+            r = requests.get(url, params={"serviceKey": key, "numOfRows": a.rows, "pageNo": page}, timeout=60)
             status, text = r.status_code, r.text.replace(key, "<KEY>")
         except requests.RequestException as e:
             status, text = None, ""

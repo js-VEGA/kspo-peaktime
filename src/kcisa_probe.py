@@ -12,24 +12,30 @@ from dotenv import load_dotenv
 ROOT = Path(__file__).resolve().parent.parent
 load_dotenv(ROOT / ".env")
 OUT = ROOT / "data" / "raw"
+K = "https://api.kcisa.kr/openapi/"
 APIS = {
-    "linked": ("API_CPM_009", "KCISA_SERVICE_KEY_LINKED"),
-    "allzone": ("API_CPM_008", "KCISA_SERVICE_KEY_ALLZONE"),
+    "linked": (K + "API_CPM_009/request", "KCISA_SERVICE_KEY_LINKED"),
+    "allzone": (K + "API_CPM_008/request", "KCISA_SERVICE_KEY_ALLZONE"),
+    "perf": (K + "service/rest/meta/KSCperf", "KCISA_SERVICE_KEY_PERF"),
+    "rental": (K + "service/rest/meta12/getKSCD0803", "KCISA_SERVICE_KEY_RENTAL"),
+    "ops": (K + "service/rest/meta12/getKSCD0801", "KCISA_SERVICE_KEY_OPS"),
 }
-BASE = "https://api.kcisa.kr/openapi/{}/request"
 
 
 def call(api, key, accept=None, timeout=120, **params):
     p = {"serviceKey": key, **params}
     headers = {"Accept": accept} if accept else {}
-    return requests.get(BASE.format(api), params=p, timeout=timeout, headers=headers)
+    return requests.get(api, params=p, timeout=timeout, headers=headers)
 
 
 def redact(text, key):
     return text.replace(key, "<KEY>")
 
 
+only = sys.argv[3:] or list(APIS)
 for name, (api, env) in APIS.items():
+    if name not in only:
+        continue
     key = os.getenv(env, "").strip()
     print(f"\n=== {name} ({api}) key set: {bool(key)} len={len(key)}")
     if not key:
