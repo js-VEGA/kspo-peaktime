@@ -52,9 +52,9 @@ def main():
         print(line, flush=True)
         log.write(line + "\n"); log.flush()
 
-    def call(page):
+    def call(page, retries=None):
         nonlocal used
-        for attempt in range(a.retries):
+        for attempt in range(retries or a.retries):
             if used >= a.budget:
                 say(f"하루 호출 예산 {a.budget} 도달: 중단(page {page}부터 이어서)")
                 return None, "budget"
@@ -69,42 +69,75 @@ def main():
                 return text, "ok"
             if status == 200 and "<item>" not in text:
                 return text, "empty"
-            wait = min(30 * 2 ** attempt, 300)
+            wait = min(30 * 2 ** attempt, 120)
             say(f"page {page}: status={status} (시도 {attempt + 1}/{a.retries}), {wait}s 대기")
             time.sleep(wait)
         return None, "fail"
 
     total = None
     end = a.end_page
-    page = a.start_page
-    while True:
-        if end and page > end:
-            break
-        f = out / f"page_{page:06d}.xml.gz"
-        if f.exists():
-            page += 1
-            continue
-        text, st = call(page)
-        if st in ("budget", "fail"):
-            if st == "fail":
-                say(f"page {page}: 재시도 한도 초과, 중단")
-            break
+    deferred = []  # 재시도 한도를 넘긴 페이지: 뒤로 미루고 다음 페이지를 계속 받는다
+
+    def fetch_page(page, retries):
+        """저장했으면 True, 예산 소진이면 'budget', 실패면 False."""
+        nonlocal total, end
+        text, st = call(page, retries)
+        if st == "budget":
+            return "budget"
+        if st == "fail":
+            return False
         if st == "empty":
-            say(f"page {page}: 항목 없음, 끝으로 판단")
-            break
+            say(f"page {page}: 항목 없음")
+            return "empty"
         n = text.count("<item>")
+        m = re.search(r"<totalCount>(\d+)", text)
+        tc = int(m.group(1)) if m else None
         if total is None:
-            m = re.search(r"<totalCount>(\d+)", text)
-            total = int(m.group(1)) if m else None
+            total = tc
             if total and not end:
                 end = -(-total // a.rows)
             say(f"totalCount={total}, 마지막 페이지={end}")
-        with gzip.open(f, "wt", encoding="utf-8", compresslevel=6) as g:
+        elif tc and tc != total:
+            say(f"주의: totalCount 변경 {total} -> {tc} (서버 적재 중일 수 있음)")
+            total = tc
+        with gzip.open(out / f"page_{page:06d}.xml.gz", "wt", encoding="utf-8", compresslevel=6) as g:
             g.write(text.replace(key, "<KEY>"))
-        say(f"page {page}/{end}: {n}건 저장 (오늘 호출 {used})")
-        page += 1
+        say(f"page {page}/{end}: {n}건 저장 (오늘 호출 {used}, 보류 {len(deferred)})")
         time.sleep(a.sleep)
-    say(f"종료: 다음 page={page}, 오늘 호출 {used}")
+        return True
+
+    page = a.start_page
+    stop = False
+    while not stop:
+        if end and page > end:
+            break
+        if (out / f"page_{page:06d}.xml.gz").exists():
+            page += 1
+            continue
+        r = fetch_page(page, 3)
+        if r == "budget" or r == "empty":
+            break
+        if r is False:
+            deferred.append(page)
+            say(f"page {page}: 보류 목록에 추가, 60초 쉬고 다음 페이지로")
+            time.sleep(60)
+        page += 1
+    for rnd in range(3):  # 보류 페이지 재시도
+        if not deferred or used >= a.budget:
+            break
+        say(f"보류 {len(deferred)}페이지 재시도 {rnd + 1}/3")
+        left = []
+        for pg in deferred:
+            r = fetch_page(pg, 4)
+            if r == "budget":
+                left.append(pg); break
+            if r is False:
+                left.append(pg); time.sleep(60)
+        deferred = left + [x for x in deferred if x not in left and not (out / f"page_{x:06d}.xml.gz").exists()]
+        deferred = sorted(set(x for x in deferred if not (out / f"page_{x:06d}.xml.gz").exists()))
+    if deferred:
+        say(f"미수집 페이지: {deferred}")
+    say(f"종료: 마지막 시도 page={page}, 오늘 호출 {used}")
 
 
 if __name__ == "__main__":

@@ -3,6 +3,7 @@
 실행: python -X utf8 -I src/parse_linked.py   (프로젝트 루트에서)
 """
 import glob
+import gzip
 import re
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -11,8 +12,17 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parent.parent
 rows = {}
-for f in sorted(glob.glob(str(ROOT / "data" / "raw" / "kcisa" / "linked_rows*" / "page_*.txt"))):
-    for it in ET.parse(f).getroot().findall(".//item"):
+def pages():
+    base = ROOT / "data" / "raw" / "kcisa"
+    for f in sorted(glob.glob(str(base / "linked_rows*" / "page_*.txt"))):
+        yield ET.parse(f).getroot()
+    for f in sorted(glob.glob(str(base / "linked_bulk*" / "page_*.xml.gz"))):
+        with gzip.open(f, "rt", encoding="utf-8") as g:
+            yield ET.fromstring(g.read())
+
+
+for root in pages():
+    for it in root.findall(".//item"):
         d = it.findtext("DESCRIPTION") or ""
         if "주차대수" not in d:
             continue
