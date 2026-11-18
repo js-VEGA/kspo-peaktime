@@ -69,7 +69,7 @@ def main():
                 return text, "ok"
             if status == 200 and "<item>" not in text:
                 return text, "empty"
-            wait = min(30 * 2 ** attempt, 120)
+            wait = 15 if (status in (429, 504) and attempt < 3) else min(30 * 2 ** attempt, 120)  # 속도제한·게이트웨이 시간초과는 짧게 재시도
             say(f"page {page}: status={status} (시도 {attempt + 1}/{a.retries}), {wait}s 대기")
             time.sleep(wait)
         return None, "fail"
