@@ -253,7 +253,14 @@ details.basis th, details.basis td { border-bottom: 1px solid #d5d9d8; padding: 
     Array.prototype.forEach.call($("metric").querySelectorAll("button"), function (b) {
       b.addEventListener("click", function () { S.metric = b.getAttribute("data-m"); S.hour = null; render(); });
     });
-    S.g = todayGroup(); S.tier = defaultTier();
+    // 주소 해시로 화면 상태 지정(공유·캡처용): #v=operator&g=5&t=3&m=out (g: 월0…일6·휴7, t: 공연 규모 번호)
+    var q = {};
+    location.hash.replace(/^#/, "").split("&").forEach(function (p) { var kv = p.split("="); if (kv[0]) q[kv[0]] = kv[1]; });
+    S.g = q.g != null ? Math.min(Math.max(parseInt(q.g, 10) || 0, 0), S.data.groups.length - 1) : todayGroup();
+    S.tier = defaultTier();
+    if (q.t != null) S.tier = parseInt(q.t, 10) || 0;
+    if (q.v === "operator") S.view = "operator";
+    if (q.m === "out") S.metric = "out";
     basis();
     render();
   }
