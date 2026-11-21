@@ -105,6 +105,19 @@ details.basis th, details.basis td { border-bottom: 1px solid #d5d9d8; padding: 
 .limits ul { margin: 0; padding-left: 1.2em; }
 .limits li { margin: 3px 0; }
 .err { background: var(--paint); border: 2px solid var(--busy); padding: 14px; border-radius: 4px; margin: 20px 0; }
+.card { background: var(--paint); border: 2px solid var(--asphalt); border-radius: 4px; padding: 14px 16px; margin: 0 0 16px; }
+.card h2 { font-family: var(--display); font-weight: 400; font-size: 20px; margin: 0 0 4px; }
+.card .hint { font-size: 13px; color: var(--ink-soft); margin: 0 0 10px; }
+.fields { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.fields label { display: flex; flex-direction: column; font-size: 13px; color: var(--ink-soft); gap: 2px; }
+.fields select { min-height: 44px; min-width: 130px; padding: 0 10px; font: inherit; font-size: 16px; border: 2px solid var(--asphalt); border-radius: 3px; background: var(--paint); color: var(--ink); }
+.plan-out p { margin: 8px 0; font-size: 15px; }
+.lvtag { display: inline-block; padding: 0 8px; border-radius: 2px; font-size: 13px; line-height: 1.7; color: #fff; white-space: nowrap; }
+.lvtag.calm { background: var(--calm); }
+.lvtag.mid { background: var(--mid); color: var(--ink); }
+.lvtag.busy { background: var(--busy); }
+.plan-out .alt { border-left: 4px solid var(--calm); padding-left: 10px; }
+.plan-out .sub { color: var(--ink-soft); font-size: 13px; }
 .retry { min-height: 44px; padding: 0 18px; border: 2px solid var(--asphalt); background: var(--asphalt); color: var(--paint); border-radius: 3px; cursor: pointer; font-weight: 700; }
 .retry:disabled { opacity: .6; cursor: wait; }
 [hidden] { display: none !important; }
@@ -159,6 +172,17 @@ details.basis th, details.basis td { border-bottom: 1px solid #d5d9d8; padding: 
   <div class="signs" id="signs"></div>
   <p class="note" id="note" hidden></p>
 
+  <section class="card" id="planner" aria-labelledby="pl-title" hidden>
+    <h2 id="pl-title">방문 시각 플래너</h2>
+    <p class="hint">위에서 고른 요일 유형을 기준으로, 도착·출발 시각의 상태를 알려 드려요.</p>
+    <div class="fields">
+      <label for="pl-arrive">도착 희망 시각<select id="pl-arrive"></select></label>
+      <label for="pl-depart">출발 희망 시각<select id="pl-depart"></select></label>
+    </div>
+    <div class="plan-out" id="pl-out" aria-live="polite"></div>
+    <p class="hint" style="margin:10px 0 0">같은 유형 날들의 <b>중앙값</b> 기준이며 보장이 아닙니다. 한산·보통·붐빔은 이 자료 안에서의 상대 구분입니다.</p>
+  </section>
+
   <details class="basis">
     <summary>이 수치의 근거 (검증 결과)</summary>
     <div id="basis"></div>
@@ -179,11 +203,62 @@ details.basis th, details.basis td { border-bottom: 1px solid #d5d9d8; padding: 
   </section>
 </main>
 
+<script id="logic">
+/* 화면 계산 로직(DOM 없음). 브라우저에서는 전역 PeakLogic, Node 테스트(tests/logic.test.js)에서는 module.exports 로 쓴다.
+   모든 값은 peaktime_2025.json 의 시간별 중앙값·10/90% 범위·임계값에서 계산한다. */
+var PeakLogic = (function () {
+  "use strict";
+  var H_MIN = 5, H_MAX = 23;
+
+  function isHour(h) { return typeof h === "number" && isFinite(h) && h === Math.floor(h) && h >= H_MIN && h <= H_MAX; }
+  // 한산/보통/붐빔: 임계값 t=[하한, 상한] (3분위). 값이 없으면 null.
+  function levelOf(v, t) { if (v == null || !t) return null; return v < t[0] ? "calm" : v < t[1] ? "mid" : "busy"; }
+  function stat(series, hour, t) {
+    var v = series.p50[hour];
+    if (v == null) return null;
+    return { hour: hour, value: v, p10: series.p10[hour], p90: series.p90[hour], level: levelOf(v, t) };
+  }
+  // [from,to] 안에서 base 시각을 뺀 시각 중 값이 base.value 보다 '엄격히' 작은 최솟값. 동률이면 base 에 가까운 시각, 그다음 이른 시각.
+  function bestAlt(series, from, to, base) {
+    var best = null, h, v, dh, db;
+    for (h = from; h <= to; h++) {
+      if (h === base.hour) continue;
+      v = series.p50[h];
+      if (v == null || v >= base.value) continue;
+      if (best === null) { best = { hour: h, value: v }; continue; }
+      dh = Math.abs(h - base.hour); db = Math.abs(best.hour - base.hour);
+      if (v < best.value || (v === best.value && (dh < db || (dh === db && h < best.hour)))) best = { hour: h, value: v };
+    }
+    if (best) best.diff = base.value - best.value;
+    return best;
+  }
+  /* 방문 시각 플래너. group: groups[i], thr: {cars:[a,b], out:[a,b]}, arrive/depart: 5~23 정수(depart >= arrive), win: 대안 탐색 범위(시간).
+     반환: {ok:true, arrive, depart, altArrive, altDepart, win} | {ok:false, reason: "hour"|"order"|"nodata"} */
+  function planVisit(group, thr, arrive, depart, win) {
+    if (win == null) win = 2;
+    if (!isHour(arrive) || !isHour(depart)) return { ok: false, reason: "hour" };
+    if (depart < arrive) return { ok: false, reason: "order" };
+    var a = stat(group.cars, arrive, thr.cars), d = stat(group.out, depart, thr.out);
+    if (!a || !d) return { ok: false, reason: "nodata" };
+    return {
+      ok: true, win: win, arrive: a, depart: d,
+      // 대안 도착은 출발 시각 이전까지만, 대안 출발은 도착 시각 이후부터만 찾는다.
+      altArrive: bestAlt(group.cars, Math.max(H_MIN, arrive - win), Math.min(depart, arrive + win), a),
+      altDepart: bestAlt(group.out, Math.max(arrive, depart - win), Math.min(H_MAX, depart + win), d)
+    };
+  }
+
+  var api = { H_MIN: H_MIN, H_MAX: H_MAX, isHour: isHour, levelOf: levelOf, planVisit: planVisit };
+  return api;
+})();
+if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogic; }
+</script>
 <script>
 (function () {
   "use strict";
+  var P = PeakLogic;
   var H0 = 5, H1 = 23, N = H1 - H0 + 1;
-  var S = { data: null, view: "visitor", g: 0, tier: 0, metric: "cars", hour: null };
+  var S = { data: null, view: "visitor", g: 0, tier: 0, metric: "cars", hour: null, arrive: 10, depart: 16 };
   var $ = function (id) { return document.getElementById(id); };
   var fmt = function (v) { return v == null ? "–" : Math.round(v).toLocaleString("ko-KR"); };
   var LV = { calm: "한산", mid: "보통", busy: "붐빔" };
@@ -220,7 +295,7 @@ details.basis th, details.basis td { border-bottom: 1px solid #d5d9d8; padding: 
   function tierKey(g) { return g.key === "fri" ? "fri" : (g.key === "sat" || g.key === "sun") ? "weekend" : null; }
   function tierList() { var k = tierKey(S.data.groups[S.g]); return k ? S.data.tiers[k] : null; }
   function thr() { return S.metric === "cars" ? S.data.meta.cars_thresholds : S.data.meta.out_thresholds; }
-  function level(v) { var t = thr(); return v < t[0] ? "calm" : v < t[1] ? "mid" : "busy"; }
+  function level(v) { return P.levelOf(v, thr()) || "calm"; }
 
   // 현재 화면의 막대(주 값)와 흐린 막대(비교 값), 24시간 배열
   function series() {
@@ -277,6 +352,13 @@ details.basis th, details.basis td { border-bottom: 1px solid #d5d9d8; padding: 
     Array.prototype.forEach.call($("metric").querySelectorAll("button"), function (b) {
       b.addEventListener("click", function () { S.metric = b.getAttribute("data-m"); S.hour = null; render(); });
     });
+    // 방문 시각 플래너 입력(도착·출발 시각)
+    ["pl-arrive", "pl-depart"].forEach(function (id) {
+      var sel = $(id);
+      for (var h = P.H_MIN; h <= P.H_MAX; h++) { var o = document.createElement("option"); o.value = h; o.textContent = h + "시"; sel.appendChild(o); }
+    });
+    $("pl-arrive").addEventListener("change", function () { S.arrive = parseInt(this.value, 10); if (S.depart < S.arrive) S.depart = S.arrive; render(); });
+    $("pl-depart").addEventListener("change", function () { S.depart = parseInt(this.value, 10); render(); });
     // 주소 해시로 화면 상태 지정(공유·캡처용): #v=operator&g=5&t=3&m=out (g: 월0…일6·휴7, t: 공연 규모 번호)
     var q = {};
     location.hash.replace(/^#/, "").split("&").forEach(function (p) { var kv = p.split("="); if (kv[0]) q[kv[0]] = kv[1]; });
@@ -333,6 +415,31 @@ details.basis th, details.basis td { border-bottom: 1px solid #d5d9d8; padding: 
     if (S.hour == null) { S.hour = peak(sr.main); }
     Array.prototype.forEach.call(bays, function (bay, i) { bay.setAttribute("aria-pressed", H0 + i === S.hour ? "true" : "false"); });
     readout(S.hour); summary(sr, g);
+    renderPlanner();
+  }
+
+  function lvTag(lv) { return '<span class="lvtag ' + lv + '">' + LV[lv] + '</span>'; }
+  function renderPlanner() {
+    var box = $("planner"), visitor = S.view === "visitor";
+    box.hidden = !visitor;
+    if (!visitor) return;
+    var g = S.data.groups[S.g], m = S.data.meta, out = $("pl-out");
+    $("pl-arrive").value = S.arrive; $("pl-depart").value = S.depart;
+    Array.prototype.forEach.call($("pl-depart").options, function (o) { o.disabled = parseInt(o.value, 10) < S.arrive; });
+    var thr = { cars: m.cars_thresholds, out: m.out_thresholds };
+    var r = P.planVisit(g, thr, S.arrive, S.depart, 2);
+    if (!r.ok) { out.innerHTML = "<p>" + (r.reason === "order" ? "출발 시각은 도착 시각과 같거나 늦어야 해요." : "이 시각은 자료가 없어요.") + "</p>"; return; }
+    var h = '<p><b>' + S.arrive + '시 도착</b> · 주차 중인 차량 중앙값 <b>' + fmt(r.arrive.value) + '대</b> ' + lvTag(r.arrive.level) +
+      '<br><span class="sub">' + groupName(g) + ' ' + g.n_days + '일 중 10~90% 범위 ' + fmt(r.arrive.p10) + '~' + fmt(r.arrive.p90) + '대</span></p>';
+    h += r.altArrive
+      ? '<p class="alt"><b>' + r.altArrive.hour + '시</b>에 도착하면 중앙값이 약 <b>' + fmt(r.altArrive.diff) + '대</b> 적어요 (' + fmt(r.altArrive.value) + '대 ' + lvTag(P.levelOf(r.altArrive.value, thr.cars)) + ')</p>'
+      : '<p class="alt">도착 시각 앞뒤 ' + r.win + '시간 안에서는 이 시각이 이미 가장 한산해요.</p>';
+    h += '<p><b>' + S.depart + '시 출발</b> · 시간당 출차 중앙값 <b>' + fmt(r.depart.value) + '대</b> ' + lvTag(r.depart.level) +
+      '<br><span class="sub">' + (r.depart.level === "calm" ? "" : "출차가 몰리는 시각이라 출구가 붐빌 수 있어요. ") + '10~90% 범위 ' + fmt(r.depart.p10) + '~' + fmt(r.depart.p90) + '대</span></p>';
+    h += r.altDepart
+      ? '<p class="alt"><b>' + r.altDepart.hour + '시</b>에 나가면 시간당 출차 중앙값이 약 <b>' + fmt(r.altDepart.diff) + '대</b> 적어요 (' + fmt(r.altDepart.value) + '대 ' + lvTag(P.levelOf(r.altDepart.value, thr.out)) + ')</p>'
+      : '<p class="alt">출발 시각 앞뒤 ' + r.win + '시간 안에서는 이 시각이 이미 출차가 가장 한산해요.</p>';
+    out.innerHTML = h;
   }
 
   function peak(a) { var pk = H0, i; for (i = H0; i <= H1; i++) if ((a[i] || 0) > (a[pk] || 0)) pk = i; return pk; }
