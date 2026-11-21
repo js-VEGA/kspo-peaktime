@@ -119,4 +119,79 @@ t("실제 데이터 예: 토요일 도착 10시의 중앙값·상태가 JSON 과
   assert.strictEqual(r.depart.value, g.out.p50[16]);
 });
 
+// ---------- 관람객 수 시뮬레이터 ----------
+const FRI = D.sim.fri, WKE = D.sim.weekend;
+
+t("modelFor: 금→fri, 토·일→weekend, 월~목·휴·모델 없음→null", () => {
+  assert.strictEqual(L.modelFor(D.sim, "fri"), FRI);
+  assert.strictEqual(L.modelFor(D.sim, "sat"), WKE);
+  assert.strictEqual(L.modelFor(D.sim, "sun"), WKE);
+  ["mon", "tue", "wed", "thu", "hol", "xxx"].forEach((k) => assert.strictEqual(L.modelFor(D.sim, k), null, k));
+  assert.strictEqual(L.modelFor(undefined, "fri"), null);
+  assert.strictEqual(L.modelFor({ fri: Object.assign({}, FRI, { n: 2 }) }, "fri"), null, "n<3 은 모델 없음");
+  assert.strictEqual(L.modelFor({ fri: Object.assign({}, FRI, { x_max: FRI.x_min }) }, "fri"), null, "범위 0 은 모델 없음");
+});
+
+t("sliderBounds: 관측 범위 안쪽, 0.1 단위", () => {
+  [FRI, WKE].forEach((mdl) => {
+    const b = L.sliderBounds(mdl);
+    assert(b.min >= mdl.x_min - 1e-9 && b.max <= mdl.x_max + 1e-9 && b.min <= b.max);
+    assert(Math.abs(b.min * 10 - Math.round(b.min * 10)) < 1e-9 && Math.abs(b.max * 10 - Math.round(b.max * 10)) < 1e-9);
+    assert.strictEqual(b.step, 0.1);
+  });
+  assert.strictEqual(JSON.stringify(L.sliderBounds({ x_min: 2.173, x_max: 18.698 })), JSON.stringify({ min: 2.2, max: 18.6, step: 0.1 })); // vm 객체라 deepStrictEqual 대신 값 비교
+  assert.strictEqual(L.sliderBounds({ x_min: 2.11, x_max: 2.19 }), null, "0.1 칸이 없으면 null");
+  assert.strictEqual(L.sliderBounds(null), null);
+});
+
+t("clampToBounds: 최솟값·최댓값 밖은 보정, 숫자가 아니면 null", () => {
+  const b = L.sliderBounds(FRI);
+  assert.strictEqual(L.clampToBounds(FRI, -5), b.min);
+  assert.strictEqual(L.clampToBounds(FRI, 999), b.max);
+  assert.strictEqual(L.clampToBounds(FRI, b.min), b.min);
+  assert.strictEqual(L.clampToBounds(FRI, b.max), b.max);
+  assert.strictEqual(L.clampToBounds(FRI, 9.04), 9.0);
+  [NaN, Infinity, "9", null, undefined].forEach((x) => assert.strictEqual(L.clampToBounds(FRI, x), null, String(x)));
+});
+
+t("predictEvening: 슬라이더 최솟값·최댓값에서 계산되고 구간이 예측값을 감싼다", () => {
+  [FRI, WKE].forEach((mdl) => {
+    const b = L.sliderBounds(mdl);
+    [b.min, b.max, mdl.xbar].forEach((x) => {
+      const r = L.predictEvening(mdl, x);
+      assert(r.ok, "x=" + x);
+      assert(r.lo < r.yhat && r.yhat < r.hi);
+      assert(Math.abs(r.yhat - (mdl.intercept + mdl.slope * x)) < 1e-9);
+    });
+    // 평균 x 에서 구간 반폭 = t80 · s · sqrt(1 + 1/n)
+    const rm = L.predictEvening(mdl, mdl.xbar);
+    assert(Math.abs((rm.hi - rm.yhat) - mdl.t80 * mdl.resid_sd * Math.sqrt(1 + 1 / mdl.n)) < 1e-6);
+  });
+});
+
+t("predictEvening: 관측 범위 밖·숫자 아님·모델 없음은 거부", () => {
+  assert.strictEqual(L.predictEvening(FRI, FRI.x_min - 0.5).reason, "range");
+  assert.strictEqual(L.predictEvening(FRI, FRI.x_max + 0.5).reason, "range");
+  assert.strictEqual(L.predictEvening(FRI, 0).reason, "range", "공연 없음(0)은 범위 밖");
+  assert.strictEqual(L.predictEvening(FRI, NaN).reason, "value");
+  assert.strictEqual(L.predictEvening(FRI, "9").reason, "value");
+  assert.strictEqual(L.predictEvening(null, 9).reason, "model");
+  assert.strictEqual(L.predictEvening(Object.assign({}, FRI, { n: 0 }), 9).reason, "model", "n=0");
+});
+
+t("predictEvening: 잔차 표준편차 0 이면 구간 폭 0", () => {
+  const mdl = { n: 5, slope: 10, intercept: 100, resid_sd: 0, xbar: 5, sxx: 10, t80: 1.5, x_min: 2, x_max: 8 };
+  const r = L.predictEvening(mdl, 5);
+  assert(r.ok && r.lo === r.yhat && r.hi === r.yhat && r.yhat === 150);
+});
+
+t("JSON: 공연일 표본이 없는 유형은 n_perf_days 만 있고 모델이 없다", () => {
+  D.groups.forEach((g) => assert(Number.isInteger(g.n_perf_days), g.key));
+  ["mon", "tue", "wed", "thu", "hol"].forEach((k) => {
+    const g = D.groups.find((x) => x.key === k);
+    assert.strictEqual(L.modelFor(D.sim, k), null);
+    assert(g.n_perf_days < 10, k);
+  });
+});
+
 console.log(n + "개 검증 통과" + (process.exitCode ? " (실패 있음)" : ""));

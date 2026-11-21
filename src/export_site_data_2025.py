@@ -11,6 +11,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from scipy import stats
 
 ROOT = Path(__file__).resolve().parent.parent
 d = pd.read_csv(ROOT / "data/interim/model_hourly.csv", parse_dates=["ts", "date"])
@@ -31,9 +32,9 @@ def prof(sub, col, q=(0.1, 0.5, 0.9)):
 groups = []
 for i, (k, lab) in enumerate(zip(KEYS, LABELS)):
     sub = d[(d["dow"] == i) & (d["hol_day"] == 0)]
-    groups.append({"key": k, "label": lab, "n_days": int(sub["date"].nunique()), "cars": prof(sub, "cars"), "out": prof(sub, "outflow"), "inflow": prof(sub, "inflow", q=(0.5,))})
+    groups.append({"key": k, "label": lab, "n_days": int(sub["date"].nunique()), "n_perf_days": int(sub.loc[sub["aud_day"] > 0, "date"].nunique()), "cars": prof(sub, "cars"), "out": prof(sub, "outflow"), "inflow": prof(sub, "inflow", q=(0.5,))})
 sub = d[d["hol_day"] == 1]
-groups.append({"key": "hol", "label": "휴", "name": "공휴일·연휴", "n_days": int(sub["date"].nunique()), "cars": prof(sub, "cars"), "out": prof(sub, "outflow"), "inflow": prof(sub, "inflow", q=(0.5,))})
+groups.append({"key": "hol", "label": "휴", "name": "공휴일·연휴", "n_days": int(sub["date"].nunique()), "n_perf_days": int(sub.loc[sub["aud_day"] > 0, "date"].nunique()), "cars": prof(sub, "cars"), "out": prof(sub, "outflow"), "inflow": prof(sub, "inflow", q=(0.5,))})
 
 # 공연 규모 구간 (일 관람객 최대값)
 TIERS = [("공연 없음", lambda a: a == 0), ("소규모(8천 명 미만)", lambda a: (a > 0) & (a < 8000)), ("중규모(8천~1.4만)", lambda a: (a >= 8000) & (a < 14000)), ("대규모(1.4만 이상)", lambda a: a >= 14000)]
@@ -55,6 +56,28 @@ def tier_block(sub):
 
 nh = d[d["hol_day"] == 0]
 tiers = {"fri": tier_block(nh[nh["dow"] == 4]), "weekend": tier_block(nh[nh["dow"] >= 5])}
+
+
+def sim_model(sub):
+    """공연일(일 관람객 최댓값 > 0)만 대상으로 '일 관람객(천 명) → 저녁 17~21시 평균 주차대수'의 단순 OLS.
+    요일·월·기온을 통제하지 않는다(통제 추정은 report/perf_effect.md, meta.uplift). 예측구간 계산에 필요한 값을 함께 싣는다."""
+    g = sub.groupby("date").agg(aud=("aud_day", "first"))
+    g["eve"] = sub[sub["hour"].between(17, 21)].groupby("date")["cars"].mean()
+    g = g[g["aud"] > 0].dropna()
+    x, y = g["aud"].values / 1000.0, g["eve"].values
+    n = len(x)
+    xbar, sxx = x.mean(), ((x - x.mean()) ** 2).sum()
+    b = ((x - xbar) * (y - y.mean())).sum() / sxx
+    a = y.mean() - b * xbar
+    sd = float(np.sqrt(((y - (a + b * x)) ** 2).sum() / (n - 2)))
+    se_b = sd / float(np.sqrt(sxx))
+    t95, t80 = float(stats.t.ppf(0.975, n - 2)), float(stats.t.ppf(0.9, n - 2))
+    return {"n": int(n), "slope": round(float(b), 4), "slope_ci95": [round(float(b - t95 * se_b), 2), round(float(b + t95 * se_b), 2)],
+            "intercept": round(float(a), 2), "resid_sd": round(sd, 2), "xbar": round(float(xbar), 4), "sxx": round(float(sxx), 4),
+            "t80": round(t80, 4), "x_min": round(float(x.min()), 4), "x_max": round(float(x.max()), 4)}
+
+
+sim = {"fri": sim_model(nh[nh["dow"] == 4]), "weekend": sim_model(nh[nh["dow"] >= 5])}
 
 # 한산/보통/붐빔 기준: 모든 유형의 8~22시 중앙값 분포의 3분위
 def tert(vals):
@@ -83,7 +106,8 @@ meta = {
     "uplift": {"eve_cars_per_1k": 59, "eve_cars_ci": [42, 75], "eve_out_per_1k": 69, "eve_out_ci": [38, 100], "n_days": 89,
                "note": "같은 요일 유형(금요일·주말) 안에서 일 관람객 +1천 명당 저녁 17~21시 평균 재차, 18~23시 출차 건수의 증분. 요일·월·기온 편차 통제, 조건부 증분이며 인과가 아님(report/perf_effect.md)."},
 }
-out = {"meta": meta, "groups": groups, "tiers": tiers}
+meta["sim_note"] = "금요일·주말(비공휴일) 공연일의 일 관람객 최댓값(천 명) → 저녁 17~21시 평균 주차대수 단순 OLS. 요일·월·기온 통제 없음. 구간은 예측구간(80%, t 분포)."
+out = {"meta": meta, "groups": groups, "tiers": tiers, "sim": sim}
 (ROOT / "docs/data/peaktime_2025.json").write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
 print(json.dumps({"meta": meta, "n_days": {g["key"]: g["n_days"] for g in groups}, "tiers": {k: [(t["label"], t["n_days"]) for t in v] for k, v in tiers.items()}}, ensure_ascii=False, indent=1))
 print("size", (ROOT / "docs/data/peaktime_2025.json").stat().st_size)

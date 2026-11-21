@@ -118,6 +118,17 @@ details.basis th, details.basis td { border-bottom: 1px solid #d5d9d8; padding: 
 .lvtag.busy { background: var(--busy); }
 .plan-out .alt { border-left: 4px solid var(--calm); padding-left: 10px; }
 .plan-out .sub { color: var(--ink-soft); font-size: 13px; }
+.sim { margin-top: 12px; }
+.sim-label { display: block; font-size: 14px; margin: 4px 0 2px; }
+.sim-label output { font-family: var(--mono); font-size: 18px; font-weight: 500; margin-left: 6px; white-space: nowrap; }
+.sim input[type=range] { width: 100%; height: 44px; margin: 0; accent-color: var(--asphalt); cursor: pointer; }
+.sim input[type=range]:disabled { cursor: not-allowed; opacity: .5; }
+.sim-scale { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 12px; color: var(--ink-soft); }
+#sim-out p { margin: 8px 0; font-size: 15px; }
+#sim-out .big { font-size: 17px; }
+#sim-out ul { margin: 6px 0; padding-left: 1.2em; font-size: 14px; }
+#sim-out li { margin: 3px 0; }
+#sim-out .sub { color: var(--ink-soft); font-size: 13px; }
 .retry { min-height: 44px; padding: 0 18px; border: 2px solid var(--asphalt); background: var(--asphalt); color: var(--paint); border-radius: 3px; cursor: pointer; font-weight: 700; }
 .retry:disabled { opacity: .6; cursor: wait; }
 [hidden] { display: none !important; }
@@ -151,6 +162,15 @@ details.basis th, details.basis td { border-bottom: 1px solid #d5d9d8; padding: 
     <p class="lede" style="font-size:15px;margin:8px 0 0">공연 규모 <small>그날 관람객 수의 최댓값 기준 (관측한 날 수)</small></p>
     <ul class="row tiers" id="tiers" aria-label="공연 규모 선택"></ul>
   </div>
+  <section class="card sim" id="sim" aria-labelledby="sim-title" hidden>
+    <h2 id="sim-title">관람객 수 시뮬레이터</h2>
+    <p class="hint">위 공연 규모 버튼은 프리셋입니다. 슬라이더로 그날 공연 관람객 수를 바꿔 보면, 같은 요일 유형의 관측 관계로 저녁(17~21시) 평균 주차 차량을 어림해 볼 수 있어요.</p>
+    <label for="sim-range" class="sim-label">그날 공연 관람객 수(시간별 최댓값) <output id="sim-val" for="sim-range"></output></label>
+    <input type="range" id="sim-range" min="0" max="1" step="0.1" value="0" aria-describedby="sim-reason sim-out">
+    <div class="sim-scale" aria-hidden="true"><span id="sim-min"></span><span id="sim-max"></span></div>
+    <div id="sim-out" aria-live="polite"></div>
+    <p class="hint" id="sim-reason" style="margin:8px 0 0"></p>
+  </section>
   <div class="metric" id="metric" role="group" aria-label="보여 줄 지표" hidden>
     <button type="button" data-m="cars" aria-pressed="true">주차 중인 차량</button>
     <button type="button" data-m="out" aria-pressed="false">시간당 출차</button>
@@ -248,7 +268,35 @@ var PeakLogic = (function () {
     };
   }
 
-  var api = { H_MIN: H_MIN, H_MAX: H_MAX, isHour: isHour, levelOf: levelOf, planVisit: planVisit };
+  /* 관람객 수 시뮬레이터: JSON sim.{fri|weekend} 의 단순 OLS(일 관람객 천 명 → 저녁 17~21시 평균 주차대수). 통제 없음. */
+  function modelFor(sim, groupKey) {
+    if (!sim) return null;
+    var m = groupKey === "fri" ? sim.fri : (groupKey === "sat" || groupKey === "sun") ? sim.weekend : null;
+    return m && m.n >= 3 && m.x_max > m.x_min ? m : null;
+  }
+  // 슬라이더 범위는 관측 범위 안쪽으로 0.1 단위로 줄여, 관측 범위 밖 값을 고를 수 없게 한다.
+  function sliderBounds(model) {
+    if (!model) return null;
+    var min = Math.ceil(model.x_min * 10 - 1e-9) / 10, max = Math.floor(model.x_max * 10 + 1e-9) / 10;
+    return max >= min ? { min: min, max: max, step: 0.1 } : null;
+  }
+  function clampToBounds(model, x) {
+    var b = sliderBounds(model);
+    if (!b || typeof x !== "number" || !isFinite(x)) return null;
+    return Math.min(b.max, Math.max(b.min, Math.round(x * 10) / 10));
+  }
+  // 80% 예측구간(t 분포): ŷ ± t80 · s · sqrt(1 + 1/n + (x−x̄)²/Sxx). 관측 범위(x_min~x_max) 밖이면 계산하지 않는다.
+  function predictEvening(model, x) {
+    if (!model || !(model.n >= 3)) return { ok: false, reason: "model" };
+    if (typeof x !== "number" || !isFinite(x)) return { ok: false, reason: "value" };
+    if (x < model.x_min - 1e-9 || x > model.x_max + 1e-9) return { ok: false, reason: "range" };
+    var yhat = model.intercept + model.slope * x;
+    var se = model.resid_sd * Math.sqrt(1 + 1 / model.n + Math.pow(x - model.xbar, 2) / model.sxx);
+    return { ok: true, x: x, yhat: yhat, lo: yhat - model.t80 * se, hi: yhat + model.t80 * se };
+  }
+
+  var api = { H_MIN: H_MIN, H_MAX: H_MAX, isHour: isHour, levelOf: levelOf, planVisit: planVisit,
+              modelFor: modelFor, sliderBounds: sliderBounds, clampToBounds: clampToBounds, predictEvening: predictEvening };
   return api;
 })();
 if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogic; }
@@ -258,7 +306,7 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
   "use strict";
   var P = PeakLogic;
   var H0 = 5, H1 = 23, N = H1 - H0 + 1;
-  var S = { data: null, view: "visitor", g: 0, tier: 0, metric: "cars", hour: null, arrive: 10, depart: 16 };
+  var S = { data: null, view: "visitor", g: 0, tier: 0, metric: "cars", hour: null, arrive: 10, depart: 16, sim: null };
   var $ = function (id) { return document.getElementById(id); };
   var fmt = function (v) { return v == null ? "–" : Math.round(v).toLocaleString("ko-KR"); };
   var LV = { calm: "한산", mid: "보통", busy: "붐빔" };
@@ -324,7 +372,7 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
     S.data.groups.forEach(function (g, i) {
       var li = document.createElement("li"), b = document.createElement("button");
       b.type = "button"; b.textContent = g.label; b.setAttribute("aria-label", groupName(g) + " (관측 " + g.n_days + "일)");
-      b.addEventListener("click", function () { S.g = i; S.tier = defaultTier(); S.hour = null; render(); });
+      b.addEventListener("click", function () { S.g = i; S.tier = defaultTier(); S.sim = null; S.hour = null; render(); });
       li.appendChild(b); days.appendChild(li);
     });
     var hrs = $("hours");
@@ -352,6 +400,7 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
     Array.prototype.forEach.call($("metric").querySelectorAll("button"), function (b) {
       b.addEventListener("click", function () { S.metric = b.getAttribute("data-m"); S.hour = null; render(); });
     });
+    $("sim-range").addEventListener("input", function () { S.sim = parseFloat(this.value); renderSim(); });
     // 방문 시각 플래너 입력(도착·출발 시각)
     ["pl-arrive", "pl-depart"].forEach(function (id) {
       var sel = $(id);
@@ -395,7 +444,11 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
         b.type = "button"; b.disabled = t.n_days === 0;
         b.innerHTML = t.label.replace("(", "<small>(").replace(")", ")</small>") + "<small>" + t.n_days + "일 관측</small>";
         b.setAttribute("aria-pressed", i === S.tier ? "true" : "false");
-        b.addEventListener("click", function () { S.tier = i; render(); });
+        b.addEventListener("click", function () {
+          S.tier = i;
+          if (t.aud_median > 0) S.sim = t.aud_median / 1000; // 프리셋: 그 규모의 관람객 중앙값으로 슬라이더 이동(범위 밖이면 renderSim 에서 보정)
+          render();
+        });
         li.appendChild(b); ul.appendChild(li);
       });
     }
@@ -416,6 +469,44 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
     Array.prototype.forEach.call(bays, function (bay, i) { bay.setAttribute("aria-pressed", H0 + i === S.hour ? "true" : "false"); });
     readout(S.hour); summary(sr, g);
     renderPlanner();
+    renderSim();
+  }
+
+  function eunNeun(word) { // 받침이 있으면 '은', 없으면 '는'
+    var c = word.charCodeAt(word.length - 1) - 0xAC00;
+    return c >= 0 && c <= 11171 && c % 28 !== 0 ? "은" : "는";
+  }
+  function signed(v) { var r = Math.round(v); return (r >= 0 ? "+" : "−") + Math.abs(r).toLocaleString("ko-KR"); }
+  function renderSim() {
+    var box = $("sim"), operator = S.view === "operator";
+    box.hidden = !operator;
+    if (!operator) return;
+    var d = S.data, g = d.groups[S.g], mdl = P.modelFor(d.sim, g.key), range = $("sim-range"), out = $("sim-out"), why = $("sim-reason");
+    if (!mdl) { // 공연일 표본이 거의 없는 유형: 비활성화하고 이유를 보여 준다.
+      range.disabled = true; range.min = 0; range.max = 1; range.value = 0;
+      $("sim-val").textContent = "–"; $("sim-min").textContent = ""; $("sim-max").textContent = "";
+      out.innerHTML = "";
+      range.removeAttribute("aria-valuetext");
+      why.textContent = groupName(g) + eunNeun(groupName(g)) + " 공연이 " + (g.n_perf_days > 0 ? "있었던 날이 " + g.n_perf_days + "일뿐이라" : "있었던 날이 없어서") + " 관람객 수에 따른 변화를 계산하지 않아요. 금요일과 주말(토·일)에서만 쓸 수 있어요.";
+      return;
+    }
+    var b = P.sliderBounds(mdl);
+    range.disabled = false; range.min = b.min; range.max = b.max; range.step = b.step;
+    S.sim = P.clampToBounds(mdl, S.sim == null ? mdl.xbar : S.sim); // 관측 범위 안쪽으로 보정
+    range.value = S.sim;
+    $("sim-val").textContent = S.sim.toFixed(1) + "천 명";
+    range.setAttribute("aria-valuetext", "관람객 " + S.sim.toFixed(1) + "천 명");
+    $("sim-min").textContent = b.min.toFixed(1) + "천 명"; $("sim-max").textContent = b.max.toFixed(1) + "천 명";
+    var r = P.predictEvening(mdl, S.sim), u = d.meta.uplift, grp = g.key === "fri" ? "금요일" : "주말(토·일)";
+    if (!r.ok) { out.innerHTML = ""; why.textContent = "이 값은 관측 범위 밖이라 계산하지 않아요."; return; }
+    out.innerHTML =
+      '<p class="big">저녁(17~21시) 평균 주차 차량 약 <b>' + fmt(r.yhat) + '대</b> <span class="sub">(80% 예측구간 ' + fmt(r.lo) + '~' + fmt(r.hi) + '대)</span></p>' +
+      '<p class="sub">' + grp + ' 공연일 ' + mdl.n + '일(관람객 ' + mdl.x_min.toFixed(1) + '~' + mdl.x_max.toFixed(1) + '천 명)의 단순 회귀입니다. 관측 범위 안에서만 계산해요.</p>' +
+      '<ul><li>관람객 +1천 명당 저녁 평균 주차 차량, <b>단순 회귀</b> 약 <b>' + signed(mdl.slope) + '대</b> (95% 구간 ' + fmt(mdl.slope_ci95[0]) + '~' + fmt(mdl.slope_ci95[1]) + ', ' + grp + ' ' + mdl.n + '일, 다른 조건 통제 없음)</li>' +
+      '<li>요일·월·기온 편차를 <b>통제한 추정</b> 약 <b>' + signed(u.eve_cars_per_1k) + '대</b> (95% 구간 ' + u.eve_cars_ci[0] + '~' + u.eve_cars_ci[1] + ', 금요일·주말 ' + u.n_days + '일)</li></ul>' +
+      '<p class="sub">두 값이 조금 다른 이유: 앞의 값은 다른 조건을 통제하지 않은 단순 비교이고, 뒤의 값은 요일·월·기온 편차를 통제했으며 분석한 날도 조금 달라요(공휴일과 겹친 주말 포함).</p>' +
+      '<p class="sub"><b>조건부 비교이며 공연이 원인이라는 뜻이 아닙니다.</b></p>';
+    why.textContent = "";
   }
 
   function lvTag(lv) { return '<span class="lvtag ' + lv + '">' + LV[lv] + '</span>'; }
@@ -486,7 +577,7 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
       html += panel("calm", "관측한 날", sr.cur.n_days + "일", "공연 관람객 일 최대 중앙값 " + (sr.cur.aud_median ? sr.cur.aud_median.toLocaleString("ko-KR") + "명" : "–"));
       note.hidden = false;
       var u = d.meta.uplift;
-      note.textContent = "같은 요일 유형 안에서 일 관람객이 1천 명 늘 때 저녁(17~21시) 평균 주차 차량은 약 " + u.eve_cars_per_1k + "대(95% 구간 " + u.eve_cars_ci[0] + "~" + u.eve_cars_ci[1] + "), 18~23시 출차는 약 " + u.eve_out_per_1k + "대(" + u.eve_out_ci[0] + "~" + u.eve_out_ci[1] + ") 많았습니다(" + u.n_days + "일, 요일·월·기온 편차 통제). 조건부 비교이며 공연이 원인이라는 뜻은 아닙니다.";
+      note.textContent = "공연 규모별 같은 요일 유형 날들의 평균 비교입니다. 요일·월·기온 편차를 통제하면 일 관람객 1천 명당 18~23시 출차도 약 " + u.eve_out_per_1k + "대(95% 구간 " + u.eve_out_ci[0] + "~" + u.eve_out_ci[1] + ", " + u.n_days + "일) 많았습니다. 조건부 비교이며 공연이 원인이라는 뜻은 아닙니다. 관람객 수에 따른 저녁 주차 변화는 위쪽 시뮬레이터에서 볼 수 있어요.";
     } else {
       var eve = mean(a, 17, 21), pk2 = peak(a);
       html += panel("busy", "저녁 17~21시 평균", fmt(eve) + "대", m === "cars" ? "주차 중인 차량" : "시간당 출차");
