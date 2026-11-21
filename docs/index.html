@@ -3,8 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>올팍 피크타임 · 시험판</title>
-<meta name="description" content="올림픽공원 주차장이 언제 붐비고 언제 빠지는지, 공연 규모에 따라 저녁이 얼마나 달라지는지 보여 주는 시험판. 2025년 관측 분포를 요약했습니다.">
+<title>올팍 피크타임 · 올림픽공원 주차 혼잡 안내</title>
+<meta name="description" content="올림픽공원 주차장이 언제 붐비고 언제 빠지는지, 공연 규모에 따라 저녁이 얼마나 달라지는지 보여 주는 안내. 2025년 관측 분포를 요약했습니다.">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="ko_KR">
+<meta property="og:title" content="올팍 피크타임 · 올림픽공원 주차 혼잡 안내">
+<meta property="og:description" content="언제 가야 덜 붐비고 언제 나가야 덜 막힐까? 공연 규모별 저녁 주차와 퇴장 시간대를 2025년 관측 분포로 보여 줍니다.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231f2528'/%3E%3Crect y='26' width='32' height='6' fill='%23f5c518'/%3E%3Ctext x='16' y='22' font-size='20' font-family='sans-serif' font-weight='700' text-anchor='middle' fill='%23ffffff'%3EP%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=IBM+Plex+Mono:wght@500&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
@@ -100,6 +105,8 @@ details.basis th, details.basis td { border-bottom: 1px solid #d5d9d8; padding: 
 .limits ul { margin: 0; padding-left: 1.2em; }
 .limits li { margin: 3px 0; }
 .err { background: var(--paint); border: 2px solid var(--busy); padding: 14px; border-radius: 4px; margin: 20px 0; }
+.retry { min-height: 44px; padding: 0 18px; border: 2px solid var(--asphalt); background: var(--asphalt); color: var(--paint); border-radius: 3px; cursor: pointer; font-weight: 700; }
+.retry:disabled { opacity: .6; cursor: wait; }
 [hidden] { display: none !important; }
 
 @media (max-width: 640px) {
@@ -115,7 +122,7 @@ details.basis th, details.basis td { border-bottom: 1px solid #d5d9d8; padding: 
 <header class="sign">
   <div class="wrap">
     <h1>올팍 피크타임</h1>
-    <span class="tag">시험판 · 2025년 관측</span>
+    <span class="tag">2025년 관측 데이터 기반</span>
   </div>
 </header>
 
@@ -182,14 +189,31 @@ details.basis th, details.basis td { border-bottom: 1px solid #d5d9d8; padding: 
   var LV = { calm: "한산", mid: "보통", busy: "붐빔" };
 
   function todayGroup() { return (new Date().getDay() + 6) % 7; }
+  // 데이터 불러오기: 실패하면 안내와 '다시 시도' 버튼을 보여 준다.
+  var initialized = false;
+  function clearError() { var e = document.getElementById("load-error"); if (e) e.remove(); }
   function showError(msg) {
-    var d = document.createElement("div"); d.className = "err"; d.setAttribute("role", "alert"); d.textContent = msg;
+    clearError();
+    var d = document.createElement("div"); d.id = "load-error"; d.className = "err"; d.setAttribute("role", "alert");
+    var p = document.createElement("p"); p.style.margin = "0 0 10px"; p.textContent = msg; d.appendChild(p);
+    var b = document.createElement("button"); b.type = "button"; b.className = "retry"; b.textContent = "다시 시도";
+    b.addEventListener("click", function () { b.disabled = true; b.textContent = "불러오는 중…"; load(); });
+    d.appendChild(b);
     var m = document.querySelector("main"); m.insertBefore(d, m.firstChild);
+    b.focus();
   }
-  fetch("data/peaktime_2025.json")
-    .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
-    .then(function (d) { S.data = d; init(); })
-    .catch(function () { showError("데이터를 불러오지 못했습니다. 인터넷 연결을 확인하고 새로 고쳐 주세요. 파일로 직접 열었다면 웹 주소(https://…)로 접속해야 합니다."); });
+  function load() {
+    fetch("data/peaktime_2025.json", { cache: "no-cache" })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (d) { clearError(); S.data = d; if (!initialized) { initialized = true; init(); } })
+      .catch(function () {
+        var local = location.protocol === "file:";
+        showError(local
+          ? "데이터를 불러오지 못했습니다. 파일을 직접 열면 데이터를 읽을 수 없어요. docs 폴더에서 웹 서버(python -m http.server)를 실행하거나 웹 주소(https://…)로 접속해 주세요."
+          : "데이터를 불러오지 못했습니다. 인터넷 연결을 확인하고 '다시 시도'를 눌러 주세요.");
+      });
+  }
+  load();
 
   function sh(label) { return label.split("(")[0]; } // '소규모(8천 명 미만)' → '소규모'
   function groupName(g) { return g.name || (g.label + "요일"); }
