@@ -66,7 +66,7 @@ button { font: inherit; color: inherit; }
 .row button:hover:not([aria-pressed="true"]) { background: rgba(31, 37, 40, .08); }
 .row button:disabled { opacity: .4; cursor: not-allowed; }
 .metric { display: inline-flex; border: 2px solid var(--asphalt); border-radius: 3px; overflow: hidden; margin: 4px 0 8px; }
-.metric button { border: 0; background: transparent; padding: 6px 14px; cursor: pointer; font-size: 14px; }
+.metric button { border: 0; background: transparent; padding: 6px 14px; min-height: 44px; cursor: pointer; font-size: 14px; }
 .metric button[aria-pressed="true"] { background: var(--asphalt); color: var(--paint); }
 
 .lot { background: var(--asphalt); color: var(--paint); border-radius: 4px; padding: 18px 14px 12px; }
@@ -136,6 +136,21 @@ details.basis th, details.basis td { border-bottom: 1px solid #d5d9d8; padding: 
 #sim-out ul { margin: 6px 0; padding-left: 1.2em; font-size: 14px; }
 #sim-out li { margin: 3px 0; }
 #sim-out .sub { color: var(--ink-soft); font-size: 13px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.table-scroll { overflow-x: auto; }
+.st-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.st-table th, .st-table td { padding: 6px 8px; border-bottom: 1px solid #d5d9d8; text-align: left; vertical-align: middle; }
+.st-table thead th { font-size: 12px; color: var(--ink-soft); font-weight: 500; }
+.st-table td.num, .st-table th.num { font-family: var(--mono); font-size: 13px; white-space: nowrap; text-align: right; }
+.st-table tr.best td, .st-table tr.best th { background: #e6f3ee; font-weight: 700; }
+.st-bar { height: 14px; min-width: 2px; background: var(--calm); border-radius: 2px; }
+.st-bar.x { background: #b9b8b1; }
+.st-barcell { width: 30%; }
+#st-months th, #st-months td { white-space: nowrap; }
+#st-months td.st-barcell { min-width: 48px; }
+#st-months td:last-child { white-space: normal; }
+.st-list { margin: 0; padding-left: 1.3em; font-size: 14px; }
+.st-list li { margin: 5px 0; }
 .retry { min-height: 44px; padding: 0 18px; border: 2px solid var(--asphalt); background: var(--asphalt); color: var(--paint); border-radius: 3px; cursor: pointer; font-weight: 700; }
 .retry:disabled { opacity: .6; cursor: wait; }
 [hidden] { display: none !important; }
@@ -162,12 +177,14 @@ details.basis th, details.basis td { border-bottom: 1px solid #d5d9d8; padding: 
     <div class="tabs" role="tablist" aria-label="화면 선택">
       <button role="tab" id="tab-visitor" aria-selected="true" aria-controls="view">방문객</button>
       <button role="tab" id="tab-operator" aria-selected="false" aria-controls="view">운영자</button>
+      <button role="tab" id="tab-status" aria-selected="false" aria-controls="status-view">데이터 현황</button>
     </div>
     <div class="share">
       <button type="button" id="copy-link" class="copy">이 화면 링크 복사</button>
       <span id="copy-msg" role="status" aria-live="polite"></span>
     </div>
   </div>
+  <div id="app-view">
   <p class="lede" id="lede"></p>
 
   <ul class="row days" id="days" aria-label="요일 선택"></ul>
@@ -221,15 +238,41 @@ details.basis th, details.basis td { border-bottom: 1px solid #d5d9d8; padding: 
     <div id="basis"></div>
   </details>
 
+  </div><!-- /app-view -->
+
+  <section id="status-view" aria-labelledby="st-title" hidden>
+    <p class="lede" id="st-title">이 화면의 수치는 어디서 왔고, 어디가 비어 있을까요?<small>2025년 입출차 원천 기록의 빈틈과 검증 결과를 그대로 보여 줍니다.</small></p>
+    <section class="card" aria-labelledby="st-m-title">
+      <h2 id="st-m-title">월별 입차 기록</h2>
+      <p class="hint" id="st-m-hint"></p>
+      <div class="table-scroll"><table class="st-table"><caption class="sr-only">월별 입차 기록 건수와 분석 사용 여부</caption><thead><tr><th scope="col">월</th><th scope="col">입차 기록</th><th scope="col">건수</th><th scope="col">분석한 날</th><th scope="col">사용</th></tr></thead><tbody id="st-months"></tbody></table></div>
+    </section>
+    <section class="card" aria-labelledby="st-d-title">
+      <h2 id="st-d-title">원천 중복과 기록 기간</h2>
+      <ul class="st-list" id="st-dup"></ul>
+    </section>
+    <section class="card" aria-labelledby="st-v-title">
+      <h2 id="st-v-title">검증 표</h2>
+      <p class="hint" id="st-v-hint"></p>
+      <div class="table-scroll"><table class="st-table"><caption class="sr-only">모델별 평균 절대 오차</caption><thead><tr><th scope="col">방법</th><th scope="col">전체 오차(대)</th><th scope="col">저녁 17~21시 오차(대)</th><th scope="col">관람객 8천 명 이상 날 저녁 오차(대)</th></tr></thead><tbody id="st-valid"></tbody></table></div>
+      <p class="hint" id="st-v-note" style="margin:8px 0 0"></p>
+    </section>
+    <section class="card" aria-labelledby="st-w-title">
+      <h2 id="st-w-title">추가로 개방되면 좋은 데이터</h2>
+      <p class="hint">이 서비스를 만들며 막힌 지점입니다. 개선되면 안내할 수 있는 범위가 넓어집니다.</p>
+      <ol class="st-list" id="st-wish"></ol>
+    </section>
+  </section>
+
   <section class="limits" aria-labelledby="lim-title">
     <h2 id="lim-title">이 화면을 읽을 때 알아둘 점</h2>
     <ul>
-      <li>2025년 <b>1~7월과 10월</b>(235일)의 관측 분포입니다. 앞날을 맞히는 예측값이 아니라, 같은 유형의 날이 어땠는지를 보여 줍니다.</li>
+      <li>2025년 <b id="lim-months">1~7월·10월</b>(<span id="lim-days">235</span>일)의 관측 분포입니다. 앞날을 맞히는 예측값이 아니라, 같은 유형의 날이 어땠는지를 보여 줍니다.</li>
       <li>7월 31일~9월 30일과 11월 이후는 원천 입출차 기록이 거의 없어 뺐습니다. 매월 말일도 기록이 비어 제외했습니다. 계절 변화는 한 해 자료라 배울 수 없습니다.</li>
-      <li>'주차 중인 차량'은 기관 시간표의 주차대수입니다. '시간당 출차'는 입출차 기록에 남은 차량만 센 값이라 실제보다 적을 수 있고, 아직 나가지 않은 차량은 기록에 없습니다.</li>
+      <li>'주차 중인 차량'은 기관 시간표의 주차대수입니다. '시간당 출차'는 입출차 기록에 남은 차량만 센 값이라 실제보다 적을 수 있습니다. 출차시간이 빈 행이 없어 아직 나가지 않은 차량은 기록에 없는 것으로 보입니다.</li>
       <li>한산·보통·붐빔은 이 자료 안에서의 상대 비교(3분위)이며 공식 혼잡도나 주차 가능 대수가 아닙니다.</li>
       <li>기관 자료에서 주말은 전부 공연일로 표시돼 '공연이 있는 날'과 '없는 날'을 주말끼리 비교할 수 없습니다. 그래서 같은 요일 유형 안에서 <b>관람객 규모</b>에 따른 차이만 보여 줍니다. 이 차이는 조건부 비교이며 공연이 원인이라는 뜻이 아닙니다.</li>
-      <li>공휴일·연휴는 17일, 대규모 공연이 있었던 금요일은 3일뿐이라 거칠게 읽어 주세요. 관측한 날 수를 함께 표시했습니다.</li>
+      <li>공휴일·연휴는 <span id="lim-hol">17</span>일, 대규모 공연이 있었던 금요일은 <span id="lim-big">3</span>일뿐이라 거칠게 읽어 주세요. 관측한 날 수를 함께 표시했습니다.</li>
       <li>공연장 대관은 날짜 정보가 없어 운영자 화면에 포함하지 못했습니다.</li>
       <li>출처: 한국체육산업개발(주) 올림픽공원 연계 데이터(시간대별 주차·공연·기상)와 입출차 정보 전체구역 (문화포털 오픈API, 공공데이터포털).</li>
     </ul>
@@ -468,6 +511,7 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
     bays.addEventListener("pointermove", function (e) { if (e.buttons) scrub(e); });
     $("tab-visitor").addEventListener("click", function () { S.view = "visitor"; S.hour = null; render(); });
     $("tab-operator").addEventListener("click", function () { S.view = "operator"; S.hour = null; S.tier = defaultTier(); render(); });
+    $("tab-status").addEventListener("click", function () { S.view = "status"; render(); });
     Array.prototype.forEach.call($("metric").querySelectorAll("button"), function (b) {
       b.addEventListener("click", function () { S.metric = b.getAttribute("data-m"); S.hour = null; render(); });
     });
@@ -493,7 +537,7 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
     S.tier = defaultTier();
     var tl = tierList();
     if (q.t != null && tl && tl[q.t] && tl[q.t].n_days > 0) S.tier = q.t; // 관측일이 없는 규모는 무시
-    S.view = q.v === "operator" ? "operator" : "visitor";
+    S.view = q.v === "operator" || q.v === "status" ? q.v : "visitor";
     S.metric = q.m === "out" ? "out" : "cars";
     if (q.a != null) S.arrive = q.a;
     if (q.d != null) S.depart = q.d;
@@ -503,6 +547,7 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
     render();
   }
   function currentHash() {
+    if (S.view === "status") return P.buildHash({ v: "status" });
     var st = { v: S.view, g: S.g, m: S.metric };
     if (S.view === "visitor") { st.a = S.arrive; st.d = S.depart; }
     else {
@@ -539,8 +584,10 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
   }
 
   function render() {
-    var d = S.data, g = d.groups[S.g], visitor = S.view === "visitor", tl = tierList();
-    $("tab-visitor").setAttribute("aria-selected", visitor); $("tab-operator").setAttribute("aria-selected", !visitor);
+    var d = S.data, g = d.groups[S.g], visitor = S.view === "visitor", tl = tierList(), status = S.view === "status";
+    $("tab-visitor").setAttribute("aria-selected", visitor); $("tab-operator").setAttribute("aria-selected", S.view === "operator"); $("tab-status").setAttribute("aria-selected", status);
+    $("app-view").hidden = status; $("status-view").hidden = !status;
+    if (status) { renderStatus(); syncHash(); return; }
     Array.prototype.forEach.call($("days").querySelectorAll("button"), function (b, i) { b.setAttribute("aria-pressed", i === S.g ? "true" : "false"); });
     Array.prototype.forEach.call($("metric").querySelectorAll("button"), function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-m") === S.metric ? "true" : "false"); });
     $("metric").hidden = visitor ? false : false;
@@ -585,6 +632,48 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
     renderPlanner();
     renderSim();
     syncHash();
+  }
+
+  // 데이터 현황 탭: 전부 JSON(coverage, validation_table, meta)에서 만든다.
+  function renderStatus() {
+    var d = S.data, c = d.coverage, m = d.meta, v = m.validation, i;
+    var usable = m.valid_days_by_month || {}, counts = c.monthly_inflow, max = 0, rows = "";
+    for (i = 1; i <= 12; i++) if (counts[i] > max) max = counts[i];
+    var last = c.last_in.split(" "), lastMonth = parseInt(last[0].split("-")[1], 10), lastDay = parseInt(last[0].split("-")[2], 10);
+    var excluded = [];
+    for (i = 1; i <= 12; i++) {
+      var use = usable[i] != null, n = counts[i];
+      if (!use) excluded.push(i);
+      rows += '<tr><th scope="row">' + i + '월</th><td class="st-barcell"><div class="st-bar' + (use ? "" : " x") + '" style="width:' + (n / max * 100).toFixed(1) + '%" aria-hidden="true"></div></td>' +
+        '<td class="num">' + (n / 10000).toFixed(1) + '만</td><td class="num">' + (use ? usable[i] + "일" : "–") + '</td><td>' +
+        (use ? "사용" : "제외" + (i === lastMonth ? " (" + lastMonth + "/" + lastDay + "까지)" : "")) + '</td></tr>';
+    }
+    $("st-months").innerHTML = rows;
+    $("st-m-hint").textContent = "입출차 원천 기록(중복 제거 후)의 월별 입차 건수입니다. 파란 막대는 분석에 쓴 달, 회색은 기록이 거의 없어 뺀 달이에요. 분석한 날은 모두 " + m.valid_days + "일입니다(매월 말일은 기록이 비어 제외).";
+    var pct = function (x) { return (x * 100).toFixed(1); };
+    $("st-dup").innerHTML =
+      "<li>원천 " + c.raw_rows.toLocaleString("ko-KR") + "행 → 중복 제거 후 <b>" + c.unique_rows.toLocaleString("ko-KR") + "건</b> (원천 중복 <b>" + pct(c.dup_rate) + "%</b>, 같은 ID·내용의 행)</li>" +
+      "<li>입차 기록 기간: " + c.first_in + " ~ " + c.last_in + "</li>" +
+      "<li>연계 시간표 " + c.linked_rows.toLocaleString("ko-KR") + "행 중 강수량 결측 약 " + Math.round(c.rain_missing_rate * 100) + "%</li>" +
+      "<li>기관 표의 '방문객' 값은 주차대수의 3배(평일)·5배(주말·휴일)로 만든 파생값이라 쓰지 않았습니다.</li>";
+    var best = 0, vt = d.validation_table;
+    vt.forEach(function (r, k) { if (r.mae_all < vt[best].mae_all) best = k; });
+    $("st-valid").innerHTML = vt.map(function (r, k) {
+      return '<tr' + (k === best ? ' class="best"' : "") + '><th scope="row">' + r.model + (k === best ? " (전체 오차 최소)" : "") + '</th><td class="num">' + r.mae_all.toFixed(1) + '</td><td class="num">' + r.mae_eve.toFixed(1) + '</td><td class="num">' + r.mae_big_eve.toFixed(1) + '</td></tr>';
+    }).join("");
+    $("st-v-hint").textContent = "월 단위 롤링 검증: 앞선 달로 학습해 다음 달을 맞히는 방식(" + monthsText(v.fold_months) + ", " + v.eval_hours.toLocaleString("ko-KR") + "시간, 평균 주차대수 " + v.mean_cars.toLocaleString("ko-KR") + "대). 숫자는 평균 절대 오차이며 작을수록 좋습니다.";
+    $("st-v-note").textContent = "달력 모델의 80% 예측구간은 실제 값의 " + Math.round(v.interval80_coverage * 100) + "%를 담았습니다(목표 80%). 기상·공연 변수를 더해도 전체 오차는 줄지 않았고, 관람객 규모가 큰 날의 저녁 오차만 줄었어요.";
+    var ex = excluded.map(function (x) { return x + "월"; }).join("·");
+    $("st-wish").innerHTML = [
+      "입출차 전체구역의 누락 보완: 원천 기록이 거의 없는 달(" + ex + "), 매월 말일, " + lastMonth + "/" + lastDay + " 이후 기록.",
+      "아직 나가지 않은(주차 중인) 차량 행 포함, 또는 현재 재차 값을 따로 개방. 지금은 출차시간이 비어 있는 행이 하나도 없어, 출차 전 차량은 기록에 없는 것으로 보입니다.",
+      "입출차 원천 중복(" + pct(c.dup_rate) + "%) 정리.",
+      "공연 정보에 시작·종료 시각, 공연장 위치, 예매·예상 관람객 수. 지금은 시간별 관람객 수만 있습니다.",
+      "공연 정보의 포괄 범위 설명. 기관 자료에서 주말이 전부 '공연일'로 표시돼 '공연이 있는 날'과 '없는 날'을 비교하기 어렵습니다.",
+      "공연장 대관 정보에 날짜(기간) 포함. 지금은 날짜가 없어 대관 겹침 위험을 계산하지 못했습니다.",
+      "주차구역별 주차면수·잔여면수와 구역 컬럼. 지금은 입·출구 이름뿐입니다.",
+      "기상 강수량 결측(약 " + Math.round(c.rain_missing_rate * 100) + "%) 보완, '방문객'이 파생값임을 명시."
+    ].map(function (t) { return "<li>" + t + "</li>"; }).join("");
   }
 
   function eunNeun(word) { // 받침이 있으면 '은', 없으면 '는'
@@ -694,7 +783,7 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
       html += panel("calm", "관측한 날", sr.cur.n_days + "일", (P.isSmall(sr.cur.n_days) ? "관측일이 적어 참고용 · " : "") + "공연 관람객 일 최대 중앙값 " + (sr.cur.aud_median ? sr.cur.aud_median.toLocaleString("ko-KR") + "명" : "–"));
       note.hidden = false;
       var u = d.meta.uplift;
-      note.textContent = "공연 규모별 같은 요일 유형 날들의 평균 비교입니다. 요일·월·기온 편차를 통제하면 일 관람객 1천 명당 18~23시 출차도 약 " + u.eve_out_per_1k + "대(95% 구간 " + u.eve_out_ci[0] + "~" + u.eve_out_ci[1] + ", " + u.n_days + "일) 많았습니다. 조건부 비교이며 공연이 원인이라는 뜻은 아닙니다. 관람객 수에 따른 저녁 주차 변화는 위쪽 시뮬레이터에서 볼 수 있어요.";
+      note.textContent = "공연 규모별 같은 요일 유형 날들의 평균 비교입니다. 요일·월·기온 편차를 통제하면 일 관람객 1천 명당 18~23시 출차도 약 " + u.eve_out_per_1k + "대(95% 구간 " + u.eve_out_ci[0] + "~" + u.eve_out_ci[1] + ", " + u.n_days + "일) 많았습니다. 조건부 비교이며 공연이 원인이라는 뜻은 아닙니다. 관람객 수와 저녁 주차 차량의 관계는 위쪽 시뮬레이터에서 볼 수 있어요.";
     } else {
       var eve = mean(a, 17, 21), pk2 = peak(a);
       html += panel("busy", "저녁 17~21시 평균", fmt(eve) + "대", m === "cars" ? "주차 중인 차량" : "시간당 출차");
@@ -706,10 +795,25 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
     $("signs").innerHTML = html;
   }
 
+  // 월 번호 목록 → "3~7월·10월" (연속 구간은 ~ 로 묶는다)
+  function monthsText(list) {
+    var a = list.slice().sort(function (x, y) { return x - y; }), out = [], i = 0;
+    while (i < a.length) { var j = i; while (j + 1 < a.length && a[j + 1] === a[j] + 1) j++; out.push(j > i ? a[i] + "~" + a[j] + "월" : a[i] + "월"); i = j + 1; }
+    return out.join("·");
+  }
+  function fillLimits() { // 한계 문구의 숫자는 JSON 에서 채운다
+    var d = S.data, hol = d.groups.filter(function (g) { return g.key === "hol"; })[0];
+    $("lim-months").textContent = monthsText(Object.keys(d.meta.valid_days_by_month).map(Number));
+    $("lim-days").textContent = d.meta.valid_days;
+    $("lim-hol").textContent = hol ? hol.n_days : "–";
+    $("lim-big").textContent = d.tiers.fri[3] ? d.tiers.fri[3].n_days : "–";
+  }
+
   function basis() {
+    fillLimits();
     var v = S.data.meta.validation, u = S.data.meta.uplift;
     $("basis").innerHTML =
-      '<p>2025년 시간별 주차대수를 달·요일·공휴일 정보로 맞추는 모델을 월 단위 롤링 검증(앞선 달로 학습해 다음 달 예측, 3~7월·10월, ' + v.eval_hours.toLocaleString("ko-KR") + '시간)으로 평가했습니다. 평균 주차대수는 ' + v.mean_cars.toLocaleString("ko-KR") + '대입니다.</p>' +
+      '<p>2025년 시간별 주차대수를 달·요일·공휴일 정보로 맞추는 모델을 월 단위 롤링 검증(앞선 달로 학습해 다음 달 예측, ' + monthsText(v.fold_months) + ', ' + v.eval_hours.toLocaleString("ko-KR") + '시간)으로 평가했습니다. 평균 주차대수는 ' + v.mean_cars.toLocaleString("ko-KR") + '대입니다.</p>' +
       '<table><tr><th>방법</th><th>평균 오차(대)</th></tr>' +
       '<tr><td>요일×시각 평균</td><td>' + v.mae_dow_hour + '</td></tr>' +
       '<tr><td>휴무일×시각 평균</td><td>' + v.mae_off_hour + '</td></tr>' +

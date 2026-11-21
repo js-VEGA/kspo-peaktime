@@ -7,6 +7,7 @@
 실행: python -X utf8 -I src/export_site_data_2025.py   (프로젝트 루트에서)
 """
 import json
+import re
 from pathlib import Path
 
 import numpy as np
@@ -95,6 +96,7 @@ val = {
     "eval_hours": int(len(R)), "mean_cars": int(round(R["y"].mean())),
     "mae_dow_hour": round(mae("B1"), 0), "mae_off_hour": round(mae("B2"), 0), "mae_lightgbm_calendar": round(mae("S0"), 0),
     "interval80_coverage": round(float(((R["y"] >= R["S0_lo"]) & (R["y"] <= R["S0_hi"])).mean()), 2),
+    "fold_months": sorted(int(x) for x in R["month"].unique()),
 }
 monthly = d.groupby(d["date"].dt.month)["date"].nunique()
 meta = {
@@ -107,7 +109,23 @@ meta = {
                "note": "같은 요일 유형(금요일·주말) 안에서 일 관람객 +1천 명당 저녁 17~21시 평균 재차, 18~23시 출차 건수의 증분. 요일·월·기온 편차 통제, 조건부 증분이며 인과가 아님(report/perf_effect.md)."},
 }
 meta["sim_note"] = "금요일·주말(비공휴일) 공연일의 일 관람객 최댓값(천 명) → 저녁 17~21시 평균 주차대수 단순 OLS. 요일·월·기온 통제 없음. 구간은 예측구간(80%, t 분포)."
-out = {"meta": meta, "groups": groups, "tiers": tiers, "sim": sim}
+# ---- 데이터 현황 탭용: 월별 입차 기록, 원천 중복, 검증 표, 결측 ----
+veh = pd.read_csv(ROOT / "data/interim/vehicles.csv.gz", usecols=["t_in"], parse_dates=["t_in"])
+mcount = veh.groupby(veh["t_in"].dt.month).size().reindex(range(1, 13), fill_value=0)
+chk = (ROOT / "report/vehicles_check.md").read_text(encoding="utf-8")
+mm = re.search(r"파싱된 행 ([\d,]+), ID 중복 제거 후 ([\d,]+)", chk)
+raw_rows, uniq_rows = (int(x.replace(",", "")) for x in mm.groups())
+assert len(veh) == uniq_rows, f"vehicles.csv.gz({len(veh)})와 report/vehicles_check.md({uniq_rows}) 불일치"
+linked = pd.read_csv(ROOT / "data/interim/linked_hourly.csv", encoding="utf-8-sig", usecols=["rain"], keep_default_na=False, na_values=[""])
+vt = pd.read_csv(ROOT / "plan_assets/tables/table_validation.csv", encoding="utf-8-sig")
+coverage = {
+    "monthly_inflow": {str(int(k)): int(v) for k, v in mcount.items()},
+    "raw_rows": raw_rows, "unique_rows": uniq_rows, "dup_rate": round(1 - uniq_rows / raw_rows, 4),
+    "first_in": veh["t_in"].min().strftime("%Y-%m-%d %H:%M"), "last_in": veh["t_in"].max().strftime("%Y-%m-%d %H:%M"),
+    "rain_missing_rate": round(float(linked["rain"].isna().mean()), 4), "linked_rows": int(len(linked)),
+}
+validation_table = [{"model": r["모델"], "mae_all": float(r["전체 MAE(대)"]), "mae_eve": float(r["저녁 17~21시 MAE(대)"]), "mae_big_eve": float(r["관람객 8천 이상 날 저녁 MAE(대)"])} for _, r in vt.iterrows()]
+out = {"meta": meta, "groups": groups, "tiers": tiers, "sim": sim, "coverage": coverage, "validation_table": validation_table}
 (ROOT / "docs/data/peaktime_2025.json").write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
 print(json.dumps({"meta": meta, "n_days": {g["key"]: g["n_days"] for g in groups}, "tiers": {k: [(t["label"], t["n_days"]) for t in v] for k, v in tiers.items()}}, ensure_ascii=False, indent=1))
 print("size", (ROOT / "docs/data/peaktime_2025.json").stat().st_size)
