@@ -3,7 +3,7 @@
 올림픽공원 주차장이 **언제 붐비고 언제 빠지는지**, 공연 규모에 따라 **저녁 주차와 퇴장**이 얼마나 달라지는지를
 한국체육산업개발(주)의 개방 데이터로 보여 주는 정적 웹 서비스입니다. (2026년 공공데이터 활용 경진대회 출품작)
 
-- 접속 주소: **공개 예정** (GitHub Pages, 예상 주소 `https://js-vega.github.io/kspo-peaktime/` — 공개·배포 후 확인)
+- 접속 주소: **https://js-vega.github.io/kspo-peaktime/** (GitHub Pages, 2026-11-22 접속·데이터 로드 확인)
 - 형태: `docs/index.html` 한 장 + `docs/data/peaktime_2025.json`. 빌드 도구·서버·DB 없이 동작합니다(글꼴만 Google Fonts, 실패해도 기본 글꼴로 표시).
 
 ## 화면
