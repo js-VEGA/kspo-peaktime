@@ -194,4 +194,63 @@ t("JSON: 공연일 표본이 없는 유형은 n_perf_days 만 있고 모델이 �
   });
 });
 
+// ---------- 소표본·기본 요일·해시 ----------
+t("isSmall: 5일 미만만 참고용(경계 4/5, 0, 비숫자)", () => {
+  assert(L.isSmall(0) && L.isSmall(3) && L.isSmall(4));
+  assert(!L.isSmall(5) && !L.isSmall(17));
+  [null, undefined, NaN, "3"].forEach((x) => assert(L.isSmall(x), String(x)));
+  // 실제 데이터: 금요일 대규모(3일)만 소표본, 중규모(9일)는 아님
+  assert(L.isSmall(D.tiers.fri[3].n_days) && !L.isSmall(D.tiers.fri[2].n_days));
+});
+
+t("groupIndexForDate: 요일·공휴일·대체공휴일·경계", () => {
+  const g = (y, mo, d) => L.groupIndexForDate(new Date(y, mo - 1, d, 12, 0, 0));
+  assert.strictEqual(g(2026, 11, 21), 5, "토요일");
+  assert.strictEqual(g(2026, 11, 22), 6, "일요일");
+  assert.strictEqual(g(2026, 11, 23), 0, "월요일");
+  assert.strictEqual(g(2026, 12, 31), 3, "목요일");
+  assert.strictEqual(g(2026, 1, 1), 7, "신정(목)");
+  assert.strictEqual(g(2026, 3, 2), 7, "삼일절 대체공휴일(월)");
+  assert.strictEqual(g(2026, 5, 25), 7, "부처님오신날 대체공휴일(월)");
+  assert.strictEqual(g(2026, 6, 3), 7, "지방선거일(수)");
+  assert.strictEqual(g(2026, 9, 26), 7, "추석 연휴(토)");
+  assert.strictEqual(g(2026, 9, 27), 6, "추석 다음 날은 일요일");
+  assert.strictEqual(g(2026, 10, 5), 7, "개천절 대체공휴일");
+  assert.strictEqual(g(2026, 12, 25), 7, "성탄절(금)");
+  assert.strictEqual(g(2026, 7, 17), 4, "제헌절은 상수에 없음 → 금요일");
+  assert.strictEqual(g(2025, 1, 1), 2, "2026년 밖은 요일만 판정(수요일)");
+  assert.strictEqual(L.groupIndexForDate(new Date(NaN)), null);
+  assert.strictEqual(L.groupIndexForDate("2026-11-21"), null);
+  assert.strictEqual(L.groupIndexForDate(null), null);
+});
+
+t("공휴일 상수: 2026년 날짜만, 중복 없음, 형식 일정", () => {
+  const h = L.HOLIDAYS_2026;
+  assert.strictEqual(new Set(h).size, h.length);
+  h.forEach((x) => assert(/^2026-\d\d-\d\d$/.test(x) && !isNaN(new Date(x).getTime()), x));
+});
+
+t("buildHash/parseHash 왕복과 값 범위 검증", () => {
+  const s = L.buildHash({ v: "operator", g: 5, m: "out", t: 2, s: 12.55 });
+  assert.strictEqual(s, "v=operator&g=5&m=out&t=2&s=12.6".replace("12.6", Number(12.55).toFixed(1)));
+  const p = L.parseHash("#" + s, 8);
+  assert(p.v === "operator" && p.g === 5 && p.m === "out" && p.t === 2 && Math.abs(p.s - Number(12.55).toFixed(1)) < 1e-9);
+  const q = L.parseHash("#v=visitor&g=3&a=10&d=16", 8);
+  assert(q.v === "visitor" && q.g === 3 && q.a === 10 && q.d === 16);
+  assert.strictEqual(L.buildHash({ v: "visitor", g: 3, t: null, s: undefined, a: 10, d: NaN }), "v=visitor&g=3&a=10");
+});
+
+t("parseHash: 범위 밖·형식 오류는 버림, 빈 입력 안전", () => {
+  const p = L.parseHash("#v=hack&g=8&m=x&t=4&a=4&d=24&s=-1", 8);
+  assert.strictEqual(Object.keys(p).length, 0, JSON.stringify(p));
+  assert.strictEqual(Object.keys(L.parseHash("", 8)).length, 0);
+  assert.strictEqual(Object.keys(L.parseHash(undefined, 8)).length, 0);
+  assert.strictEqual(Object.keys(L.parseHash("#garbage&=&&g", 8)).length, 0);
+  assert.strictEqual(L.parseHash("g=7", 8).g, 7);
+  assert.strictEqual(L.parseHash("g=8", 8).g, undefined, "그룹 수 밖");
+  assert.strictEqual(L.parseHash("a=5&d=23&t=0&s=0", 8).s, 0);
+  assert.strictEqual(L.parseHash("s=1e3", 8).s, undefined, "지수 표기 거부");
+  assert.strictEqual(L.parseHash("g=1.5&a=10.5", 8).g, undefined);
+});
+
 console.log(n + "개 검증 통과" + (process.exitCode ? " (실패 있음)" : ""));

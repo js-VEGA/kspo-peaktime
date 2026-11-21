@@ -40,7 +40,14 @@ button { font: inherit; color: inherit; }
 .sign h1 { font-family: var(--display); font-weight: 400; font-size: clamp(26px, 5vw, 34px); letter-spacing: .02em; margin: 0; line-height: 1.1; }
 .tag { font-family: var(--mono); font-size: 12px; background: var(--stripe); color: var(--asphalt); padding: 3px 8px; border-radius: 2px; }
 
-.tabs { display: flex; gap: 8px; margin: 18px 0 4px; padding: 0; list-style: none; }
+.tabbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; margin: 18px 0 4px; }
+.tabs { display: flex; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.share { display: flex; align-items: center; gap: 8px; }
+.copy { min-height: 44px; padding: 0 12px; border: 2px solid var(--asphalt); background: transparent; border-radius: 3px; cursor: pointer; font-size: 14px; }
+.copy:hover { background: rgba(31, 37, 40, .08); }
+#copy-msg { font-size: 13px; font-weight: 700; color: var(--calm); }
+.badge { display: inline-block; margin-left: 8px; padding: 0 9px; border-radius: 999px; background: #fff3c4; color: var(--ink); font-size: 12px; line-height: 1.7; vertical-align: 2px; }
+.lot-head h2 { display: inline-block; }
 .tabs button { min-height: 46px; padding: 0 20px; border: 2px solid var(--asphalt); background: transparent; border-radius: 3px; font-family: var(--display); font-size: 20px; cursor: pointer; }
 .tabs button[aria-selected="true"] { background: var(--asphalt); color: var(--paint); box-shadow: inset 0 -4px 0 var(--stripe); }
 
@@ -52,7 +59,7 @@ button { font: inherit; color: inherit; }
 .row.tiers { grid-template-columns: repeat(4, 1fr); }
 .row button { width: 100%; min-height: 48px; border: 2px solid var(--asphalt); background: transparent; border-radius: 3px; cursor: pointer; padding: 2px 4px; }
 .row.days button { font-family: var(--display); font-size: 20px; }
-.row.tiers button { font-size: 13px; line-height: 1.3; }
+.row.tiers button { font-size: 13px; line-height: 1.3; padding: 7px 4px; }
 .row.tiers button small { display: block; color: var(--ink-soft); font-size: 12px; }
 .row button[aria-pressed="true"] { background: var(--asphalt); color: var(--paint); box-shadow: inset 0 -4px 0 var(--stripe); }
 .row.tiers button[aria-pressed="true"] small { color: #cfd6d9; }
@@ -151,9 +158,15 @@ details.basis th, details.basis td { border-bottom: 1px solid #d5d9d8; padding: 
 </header>
 
 <main class="wrap">
-  <div class="tabs" role="tablist" aria-label="화면 선택">
-    <button role="tab" id="tab-visitor" aria-selected="true" aria-controls="view">방문객</button>
-    <button role="tab" id="tab-operator" aria-selected="false" aria-controls="view">운영자</button>
+  <div class="tabbar">
+    <div class="tabs" role="tablist" aria-label="화면 선택">
+      <button role="tab" id="tab-visitor" aria-selected="true" aria-controls="view">방문객</button>
+      <button role="tab" id="tab-operator" aria-selected="false" aria-controls="view">운영자</button>
+    </div>
+    <div class="share">
+      <button type="button" id="copy-link" class="copy">이 화면 링크 복사</button>
+      <span id="copy-msg" role="status" aria-live="polite"></span>
+    </div>
   </div>
   <p class="lede" id="lede"></p>
 
@@ -178,7 +191,7 @@ details.basis th, details.basis td { border-bottom: 1px solid #d5d9d8; padding: 
 
   <section class="lot" id="view" aria-labelledby="lot-title">
     <div class="lot-head">
-      <h2 id="lot-title"></h2>
+      <div><h2 id="lot-title"></h2><span class="badge" id="lot-badge" hidden></span></div>
       <div class="legend" aria-hidden="true">
         <span><i class="lvl-calm"></i>한산</span><span><i class="lvl-mid"></i>보통</span><span><i class="lvl-busy"></i>붐빔</span>
         <span><i class="lvl-mid" style="opacity:.35"></i><span id="ghost-name"></span></span>
@@ -295,8 +308,67 @@ var PeakLogic = (function () {
     return { ok: true, x: x, yhat: yhat, lo: yhat - model.t80 * se, hi: yhat + model.t80 * se };
   }
 
+  /* 소표본 표시: 관측일이 5일 미만이면 '참고용'. */
+  var SMALL_N = 5;
+  function isSmall(n) { return !(typeof n === "number" && n >= SMALL_N); }
+
+  /* 접속 시 기본 선택: 오늘이 공휴일이면 '휴'(7), 아니면 요일(월0…일6).
+     공휴일 상수는 2026년 한 해만 둔다(다른 해는 요일로만 판정). 확인한 항목만 넣었고 제헌절(7/17)은 출처가 엇갈려 뺐다. */
+  var HOLIDAYS_2026 = [
+    "2026-01-01",
+    "2026-02-16", "2026-02-17", "2026-02-18",              // 설날 연휴
+    "2026-03-01", "2026-03-02",                            // 삼일절(일) + 대체공휴일
+    "2026-05-05",                                          // 어린이날
+    "2026-05-24", "2026-05-25",                            // 부처님오신날(일) + 대체공휴일
+    "2026-06-03",                                          // 전국동시지방선거일
+    "2026-06-06",                                          // 현충일
+    "2026-08-15", "2026-08-17",                            // 광복절(토) + 대체공휴일
+    "2026-09-24", "2026-09-25", "2026-09-26",              // 추석 연휴
+    "2026-10-03", "2026-10-05",                            // 개천절(토) + 대체공휴일
+    "2026-10-09",                                          // 한글날
+    "2026-12-25"                                           // 성탄절
+  ];
+  function pad2(n) { return (n < 10 ? "0" : "") + n; }
+  function groupIndexForDate(d) {
+    if (Object.prototype.toString.call(d) !== "[object Date]" || isNaN(d.getTime())) return null;
+    var key = d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
+    if (HOLIDAYS_2026.indexOf(key) >= 0) return 7;
+    return (d.getDay() + 6) % 7;
+  }
+
+  /* 화면 상태 ↔ 주소 해시. 키: v 화면, g 유형(월0…일6·휴7), m 지표, t 공연 규모, a 도착, d 출발, s 관람객(천 명).
+     읽을 때 범위를 벗어난 값은 버린다. */
+  var HASH_KEYS = ["v", "g", "m", "t", "a", "d", "s"];
+  function buildHash(st) {
+    var parts = [];
+    HASH_KEYS.forEach(function (k) {
+      var v = st[k];
+      if (v == null || v === "" || (typeof v === "number" && !isFinite(v))) return;
+      parts.push(k + "=" + (k === "s" ? Number(v).toFixed(1) : String(v)));
+    });
+    return parts.join("&");
+  }
+  function parseHash(str, nGroups) {
+    var q = {}, out = {};
+    String(str || "").replace(/^#/, "").split("&").forEach(function (p) {
+      var i = p.indexOf("=");
+      if (i > 0) q[p.slice(0, i)] = p.slice(i + 1);
+    });
+    function int(s, lo, hi) { if (!/^\d+$/.test(s || "")) return null; var n = parseInt(s, 10); return n >= lo && n <= hi ? n : null; }
+    if (q.v === "visitor" || q.v === "operator" || q.v === "status") out.v = q.v;
+    var g = int(q.g, 0, (nGroups || 8) - 1); if (g != null) out.g = g;
+    if (q.m === "cars" || q.m === "out") out.m = q.m;
+    var t = int(q.t, 0, 3); if (t != null) out.t = t;
+    var a = int(q.a, H_MIN, H_MAX); if (a != null) out.a = a;
+    var d = int(q.d, H_MIN, H_MAX); if (d != null) out.d = d;
+    if (/^\d+(\.\d+)?$/.test(q.s || "")) { var s = parseFloat(q.s); if (isFinite(s) && s <= 1000) out.s = s; }
+    return out;
+  }
+
   var api = { H_MIN: H_MIN, H_MAX: H_MAX, isHour: isHour, levelOf: levelOf, planVisit: planVisit,
-              modelFor: modelFor, sliderBounds: sliderBounds, clampToBounds: clampToBounds, predictEvening: predictEvening };
+              modelFor: modelFor, sliderBounds: sliderBounds, clampToBounds: clampToBounds, predictEvening: predictEvening,
+              SMALL_N: SMALL_N, isSmall: isSmall, HOLIDAYS_2026: HOLIDAYS_2026, groupIndexForDate: groupIndexForDate,
+              buildHash: buildHash, parseHash: parseHash };
   return api;
 })();
 if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogic; }
@@ -311,7 +383,6 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
   var fmt = function (v) { return v == null ? "–" : Math.round(v).toLocaleString("ko-KR"); };
   var LV = { calm: "한산", mid: "보통", busy: "붐빔" };
 
-  function todayGroup() { return (new Date().getDay() + 6) % 7; }
   // 데이터 불러오기: 실패하면 안내와 '다시 시도' 버튼을 보여 준다.
   var initialized = false;
   function clearError() { var e = document.getElementById("load-error"); if (e) e.remove(); }
@@ -371,7 +442,7 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
     var days = $("days");
     S.data.groups.forEach(function (g, i) {
       var li = document.createElement("li"), b = document.createElement("button");
-      b.type = "button"; b.textContent = g.label; b.setAttribute("aria-label", groupName(g) + " (관측 " + g.n_days + "일)");
+      b.type = "button"; b.textContent = g.label; b.setAttribute("aria-label", groupName(g) + " (관측 " + g.n_days + "일" + (P.isSmall(g.n_days) ? ", 참고용" : "") + ")");
       b.addEventListener("click", function () { S.g = i; S.tier = defaultTier(); S.sim = null; S.hour = null; render(); });
       li.appendChild(b); days.appendChild(li);
     });
@@ -400,7 +471,7 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
     Array.prototype.forEach.call($("metric").querySelectorAll("button"), function (b) {
       b.addEventListener("click", function () { S.metric = b.getAttribute("data-m"); S.hour = null; render(); });
     });
-    $("sim-range").addEventListener("input", function () { S.sim = parseFloat(this.value); renderSim(); });
+    $("sim-range").addEventListener("input", function () { S.sim = parseFloat(this.value); renderSim(); syncHash(); });
     // 방문 시각 플래너 입력(도착·출발 시각)
     ["pl-arrive", "pl-depart"].forEach(function (id) {
       var sel = $(id);
@@ -408,16 +479,56 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
     });
     $("pl-arrive").addEventListener("change", function () { S.arrive = parseInt(this.value, 10); if (S.depart < S.arrive) S.depart = S.arrive; render(); });
     $("pl-depart").addEventListener("change", function () { S.depart = parseInt(this.value, 10); render(); });
-    // 주소 해시로 화면 상태 지정(공유·캡처용): #v=operator&g=5&t=3&m=out (g: 월0…일6·휴7, t: 공연 규모 번호)
-    var q = {};
-    location.hash.replace(/^#/, "").split("&").forEach(function (p) { var kv = p.split("="); if (kv[0]) q[kv[0]] = kv[1]; });
-    S.g = q.g != null ? Math.min(Math.max(parseInt(q.g, 10) || 0, 0), S.data.groups.length - 1) : todayGroup();
-    S.tier = defaultTier();
-    if (q.t != null) S.tier = parseInt(q.t, 10) || 0;
-    if (q.v === "operator") S.view = "operator";
-    if (q.m === "out") S.metric = "out";
+    $("copy-link").addEventListener("click", copyLink);
+    window.addEventListener("hashchange", applyHash); // 같은 탭에서 주소만 바뀐 링크를 열 때(replaceState 로 바꾼 해시는 이벤트를 만들지 않는다)
     basis();
+    applyHash();
+  }
+
+  // 주소 해시 → 화면 상태. 해시가 없으면 오늘 요일(공휴일이면 '휴')을 고른다. 해시가 있으면 해시가 우선.
+  // #v=operator&g=5&t=3&m=out&s=12.5  /  #v=visitor&g=5&a=10&d=16  (g 월0…일6·휴7, t 공연 규모 번호, s 관람객 천 명, a·d 도착·출발)
+  function applyHash() {
+    var q = P.parseHash(location.hash, S.data.groups.length), gi = P.groupIndexForDate(new Date());
+    S.g = q.g != null ? q.g : (gi == null ? 0 : gi);
+    S.tier = defaultTier();
+    var tl = tierList();
+    if (q.t != null && tl && tl[q.t] && tl[q.t].n_days > 0) S.tier = q.t; // 관측일이 없는 규모는 무시
+    S.view = q.v === "operator" ? "operator" : "visitor";
+    S.metric = q.m === "out" ? "out" : "cars";
+    if (q.a != null) S.arrive = q.a;
+    if (q.d != null) S.depart = q.d;
+    if (S.depart < S.arrive) S.depart = S.arrive;
+    S.sim = q.s != null ? q.s : null;
+    S.hour = null;
     render();
+  }
+  function currentHash() {
+    var st = { v: S.view, g: S.g, m: S.metric };
+    if (S.view === "visitor") { st.a = S.arrive; st.d = S.depart; }
+    else {
+      if (tierList()) st.t = S.tier;
+      if (P.modelFor(S.data.sim, S.data.groups[S.g].key) && S.sim != null) st.s = S.sim;
+    }
+    return P.buildHash(st);
+  }
+  function syncHash() { try { history.replaceState(null, "", "#" + currentHash()); } catch (e) { /* 일부 환경에서는 막힐 수 있음 */ } }
+  var copyTimer = null;
+  function copyLink() {
+    syncHash();
+    var url = location.href, msg = $("copy-msg");
+    function say(t) { msg.textContent = t; clearTimeout(copyTimer); copyTimer = setTimeout(function () { msg.textContent = ""; }, 2600); }
+    function ok() { say("링크를 복사했어요"); }
+    function fail() { say("복사하지 못했어요. 주소창의 주소를 복사해 주세요."); }
+    function legacy() {
+      try {
+        var ta = document.createElement("textarea");
+        ta.value = url; ta.setAttribute("readonly", ""); ta.style.cssText = "position:fixed;opacity:0;top:0;left:0";
+        document.body.appendChild(ta); ta.select();
+        var done = document.execCommand("copy"); ta.remove();
+        done ? ok() : fail();
+      } catch (e) { fail(); }
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(ok, legacy); else legacy();
   }
 
   function defaultTier() {
@@ -442,7 +553,7 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
       tl.forEach(function (t, i) {
         var li = document.createElement("li"), b = document.createElement("button");
         b.type = "button"; b.disabled = t.n_days === 0;
-        b.innerHTML = t.label.replace("(", "<small>(").replace(")", ")</small>") + "<small>" + t.n_days + "일 관측</small>";
+        b.innerHTML = t.label.replace("(", "<small>(").replace(")", ")</small>") + "<small>" + t.n_days + "일 관측" + (t.n_days > 0 && P.isSmall(t.n_days) ? " · 참고용" : "") + "</small>";
         b.setAttribute("aria-pressed", i === S.tier ? "true" : "false");
         b.addEventListener("click", function () {
           S.tier = i;
@@ -456,6 +567,9 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
     var mname = S.metric === "cars" ? "주차 중인 차량" : "시간당 출차";
     $("lot-title").textContent = groupName(g) + " · " + mname + " (5시~23시)";
     $("ghost-name").textContent = sr.ghostName;
+    var nObs = sr.cur ? sr.cur.n_days : g.n_days, badge = $("lot-badge"); // 소표본(5일 미만)이면 '참고용' 배지
+    badge.hidden = !P.isSmall(nObs);
+    badge.textContent = "관측 " + nObs + "일, 참고용";
     var bays = $("bays").children;
     Array.prototype.forEach.call(bays, function (bay, i) {
       var h = H0 + i, v = sr.main[h], gv = sr.ghost[h], lv = v == null ? "calm" : level(v);
@@ -470,6 +584,7 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
     readout(S.hour); summary(sr, g);
     renderPlanner();
     renderSim();
+    syncHash();
   }
 
   function eunNeun(word) { // 받침이 있으면 '은', 없으면 '는'
@@ -492,7 +607,9 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
     }
     var b = P.sliderBounds(mdl);
     range.disabled = false; range.min = b.min; range.max = b.max; range.step = b.step;
-    S.sim = P.clampToBounds(mdl, S.sim == null ? mdl.xbar : S.sim); // 관측 범위 안쪽으로 보정
+    var tl0 = tierList(), seed = S.sim; // 값이 없으면 선택한 공연 규모의 관람객 중앙값에서 시작(없으면 관측 평균)
+    if (seed == null) seed = tl0 && tl0[S.tier] && tl0[S.tier].aud_median > 0 ? tl0[S.tier].aud_median / 1000 : mdl.xbar;
+    S.sim = P.clampToBounds(mdl, seed); // 관측 범위 안쪽으로 보정
     range.value = S.sim;
     $("sim-val").textContent = S.sim.toFixed(1) + "천 명";
     range.setAttribute("aria-valuetext", "관람객 " + S.sim.toFixed(1) + "천 명");
@@ -574,7 +691,7 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
       var dE = Math.round(eveC - eveB);
       html += panel("busy", "저녁 17~21시 평균 주차 차량", fmt(eveC) + "대", sr.cur === sr.base ? "비교 기준 규모" : "기준(" + sh(sr.base.label) + ") 대비 " + (dE >= 0 ? "+" : "") + dE.toLocaleString("ko-KR") + "대");
       html += panel("busy", "퇴장 피크 시각", op2 + "시", "시간당 평균 " + fmt(sr.cur.out_mean[op2]) + "대 출차");
-      html += panel("calm", "관측한 날", sr.cur.n_days + "일", "공연 관람객 일 최대 중앙값 " + (sr.cur.aud_median ? sr.cur.aud_median.toLocaleString("ko-KR") + "명" : "–"));
+      html += panel("calm", "관측한 날", sr.cur.n_days + "일", (P.isSmall(sr.cur.n_days) ? "관측일이 적어 참고용 · " : "") + "공연 관람객 일 최대 중앙값 " + (sr.cur.aud_median ? sr.cur.aud_median.toLocaleString("ko-KR") + "명" : "–"));
       note.hidden = false;
       var u = d.meta.uplift;
       note.textContent = "공연 규모별 같은 요일 유형 날들의 평균 비교입니다. 요일·월·기온 편차를 통제하면 일 관람객 1천 명당 18~23시 출차도 약 " + u.eve_out_per_1k + "대(95% 구간 " + u.eve_out_ci[0] + "~" + u.eve_out_ci[1] + ", " + u.n_days + "일) 많았습니다. 조건부 비교이며 공연이 원인이라는 뜻은 아닙니다. 관람객 수에 따른 저녁 주차 변화는 위쪽 시뮬레이터에서 볼 수 있어요.";
