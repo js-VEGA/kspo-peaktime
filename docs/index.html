@@ -3,280 +3,313 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#fbf8f1">
 <title>올팍 피크타임 · 올림픽공원 주차 혼잡 안내</title>
 <meta name="description" content="올림픽공원 주차장이 언제 붐비고 언제 빠지는지, 공연 규모에 따라 저녁이 얼마나 달라지는지 보여 주는 안내. 2025년 관측 분포를 요약했습니다.">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="ko_KR">
 <meta property="og:title" content="올팍 피크타임 · 올림픽공원 주차 혼잡 안내">
 <meta property="og:description" content="언제 가야 덜 붐비고 언제 나가야 덜 막힐까? 공연 규모별 저녁 주차와 퇴장 시간대를 2025년 관측 분포로 보여 줍니다.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231f2528'/%3E%3Crect y='26' width='32' height='6' fill='%23f5c518'/%3E%3Ctext x='16' y='22' font-size='20' font-family='sans-serif' font-weight='700' text-anchor='middle' fill='%23ffffff'%3EP%3C/text%3E%3C/svg%3E">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=IBM+Plex+Mono:wght@500&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230c5e5b'/%3E%3Cpath d='M5 24 L11 15 L16 19 L22 8 L27 13' fill='none' stroke='%23ffffff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <style>
 :root {
-  --asphalt: #1f2528;
-  --concrete: #e6e8e7;
-  --paint: #ffffff;
-  --stripe: #f5c518;
-  --calm: #1f8a70;
-  --mid: #e3a008;
-  --busy: #d6452b;
-  --ink: #1f2528;
-  --ink-soft: #566066;
-  --display: "Do Hyeon", "Noto Sans KR", system-ui, sans-serif;
-  --body: "Noto Sans KR", system-ui, -apple-system, "Malgun Gothic", sans-serif;
-  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  color-scheme: light;
+  --paper: #fbf8f1;      /* 종이 */
+  --paper-2: #f2eee3;    /* 결과 문장 영역 */
+  --ink: #1c1c1a;        /* 본문 */
+  --ink-2: #57554f;      /* 보조 글자 */
+  --rule: #ddd7c8;       /* 헤어라인(장식) */
+  --ctl: #8a8575;        /* 조작 요소 테두리(3:1 이상) */
+  --t1: #d6eae7;         /* 포인트 색 진하기 1: 한산 */
+  --t2: #7fbcb7;         /*                  2: 보통 */
+  --t3: #0c5e5b;         /*                  3: 붐빔, 선택, 강조 */
+  --sans: system-ui, "Noto Sans KR", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
 }
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
-body { margin: 0; background: var(--concrete); color: var(--ink); font-family: var(--body); line-height: 1.6; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.6; word-break: keep-all; overflow-wrap: break-word; }
 button { font: inherit; color: inherit; }
-:focus-visible { outline: 3px solid var(--stripe); outline-offset: 2px; }
-.wrap { max-width: 920px; margin: 0 auto; padding: 0 16px; }
-
-.sign { background: var(--asphalt); color: var(--paint); border-bottom: 6px solid var(--stripe); }
-.sign .wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 14px; padding-bottom: 12px; flex-wrap: wrap; }
-.sign h1 { font-family: var(--display); font-weight: 400; font-size: clamp(26px, 5vw, 34px); letter-spacing: .02em; margin: 0; line-height: 1.1; }
-.tag { font-family: var(--mono); font-size: 12px; background: var(--stripe); color: var(--asphalt); padding: 3px 8px; border-radius: 2px; }
-
-.tabbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; margin: 18px 0 4px; }
-.tabs { display: flex; gap: 8px; margin: 0; padding: 0; list-style: none; }
-.share { display: flex; align-items: center; gap: 8px; }
-.copy { min-height: 44px; padding: 0 12px; border: 2px solid var(--asphalt); background: transparent; border-radius: 3px; cursor: pointer; font-size: 14px; }
-.copy:hover { background: rgba(31, 37, 40, .08); }
-#copy-msg { font-size: 13px; font-weight: 700; color: var(--calm); }
-.badge { display: inline-block; margin-left: 8px; padding: 0 9px; border-radius: 999px; background: #fff3c4; color: var(--ink); font-size: 12px; line-height: 1.7; vertical-align: 2px; }
-.lot-head h2 { display: inline-block; }
-.tabs button { min-height: 46px; padding: 0 20px; border: 2px solid var(--asphalt); background: transparent; border-radius: 3px; font-family: var(--display); font-size: 20px; cursor: pointer; }
-.tabs button[aria-selected="true"] { background: var(--asphalt); color: var(--paint); box-shadow: inset 0 -4px 0 var(--stripe); }
-
-.lede { margin: 14px 0 6px; font-size: 17px; font-weight: 500; }
-.lede small { display: block; font-weight: 400; color: var(--ink-soft); font-size: 14px; margin-top: 2px; }
-
-.row { display: grid; gap: 6px; margin: 12px 0; padding: 0; list-style: none; }
-.row.days { grid-template-columns: repeat(8, 1fr); }
-.row.tiers { grid-template-columns: repeat(4, 1fr); }
-.row button { width: 100%; min-height: 48px; border: 2px solid var(--asphalt); background: transparent; border-radius: 3px; cursor: pointer; padding: 2px 4px; }
-.row.days button { font-family: var(--display); font-size: 20px; }
-.row.tiers button { font-size: 13px; line-height: 1.3; padding: 7px 4px; }
-.row.tiers button small { display: block; color: var(--ink-soft); font-size: 12px; }
-.row button[aria-pressed="true"] { background: var(--asphalt); color: var(--paint); box-shadow: inset 0 -4px 0 var(--stripe); }
-.row.tiers button[aria-pressed="true"] small { color: #cfd6d9; }
-.row button:hover:not([aria-pressed="true"]) { background: rgba(31, 37, 40, .08); }
-.row button:disabled { opacity: .4; cursor: not-allowed; }
-.metric { display: inline-flex; border: 2px solid var(--asphalt); border-radius: 3px; overflow: hidden; margin: 4px 0 8px; }
-.metric button { border: 0; background: transparent; padding: 6px 14px; min-height: 44px; cursor: pointer; font-size: 14px; }
-.metric button[aria-pressed="true"] { background: var(--asphalt); color: var(--paint); }
-
-.lot { background: var(--asphalt); color: var(--paint); border-radius: 4px; padding: 18px 14px 12px; }
-.lot-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
-.lot-head h2 { font-family: var(--display); font-weight: 400; font-size: 20px; margin: 0; }
-.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: #cfd6d9; }
-.legend i { display: inline-block; width: 12px; height: 12px; margin-right: 5px; vertical-align: -1px; border-radius: 2px; }
-
-.bays { display: grid; grid-template-columns: repeat(19, 1fr); height: 240px; position: relative; touch-action: pan-y; user-select: none; border-top: 2px solid rgba(255,255,255,.55); }
-.bay { position: relative; display: flex; align-items: flex-end; justify-content: center; padding: 0; background: transparent; border: 0; border-left: 2px solid rgba(255,255,255,.55); cursor: pointer; }
-.bay:last-child { border-right: 2px solid rgba(255,255,255,.55); }
-.bay:hover { background: rgba(255,255,255,.06); }
-.bay[aria-pressed="true"] { background: rgba(245,197,24,.14); }
-.range, .car { position: absolute; left: 22%; right: 22%; bottom: 0; border-radius: 2px 2px 0 0; }
-.range { opacity: .35; }
-.lvl-calm { background: var(--calm); }
-.lvl-mid { background: var(--mid); }
-.lvl-busy { background: var(--busy); }
-@media (prefers-reduced-motion: no-preference) { .car, .range { transition: height .35s ease; } }
-.hours { display: grid; grid-template-columns: repeat(19, 1fr); margin-top: 6px; font-family: var(--mono); font-size: 11px; color: #aeb7bb; text-align: center; }
-.hours span { white-space: nowrap; }
-.readout { margin-top: 12px; padding-top: 10px; border-top: 1px dashed rgba(255,255,255,.3); min-height: 3.4em; font-size: 15px; }
-.readout b { font-family: var(--mono); font-weight: 500; font-size: 18px; }
-.readout .sub { color: #cfd6d9; font-size: 13px; }
-
-.signs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 16px 0; }
-.panel { border: 2px solid var(--asphalt); border-radius: 4px; padding: 12px 14px; background: var(--paint); }
-.panel .k { font-size: 13px; color: var(--ink-soft); margin: 0; }
-.panel .v { font-family: var(--display); font-size: 28px; line-height: 1.2; margin: 2px 0; }
-.panel .n { font-size: 13px; color: var(--ink-soft); margin: 0; }
-.panel.calm .v { color: var(--calm); }
-.panel.busy .v { color: var(--busy); }
-.note { border-left: 6px solid var(--stripe); background: var(--paint); padding: 10px 14px; margin: 0 0 16px; font-size: 15px; }
-.note[hidden] { display: none; }
-
-details.basis { background: var(--paint); border: 2px solid var(--asphalt); border-radius: 4px; padding: 10px 14px; margin: 0 0 16px; font-size: 14px; }
-details.basis summary { cursor: pointer; font-weight: 700; }
-details.basis table { border-collapse: collapse; margin: 8px 0; width: 100%; font-size: 13px; }
-details.basis th, details.basis td { border-bottom: 1px solid #d5d9d8; padding: 4px 6px; text-align: left; }
-
-.limits { margin: 24px 0 40px; font-size: 14px; color: var(--ink-soft); }
-.limits h2 { font-family: var(--display); font-weight: 400; font-size: 18px; color: var(--ink); margin: 0 0 6px; }
-.limits ul { margin: 0; padding-left: 1.2em; }
-.limits li { margin: 3px 0; }
-.err { background: var(--paint); border: 2px solid var(--busy); padding: 14px; border-radius: 4px; margin: 20px 0; }
-.card { background: var(--paint); border: 2px solid var(--asphalt); border-radius: 4px; padding: 14px 16px; margin: 0 0 16px; }
-.card h2 { font-family: var(--display); font-weight: 400; font-size: 20px; margin: 0 0 4px; }
-.card .hint { font-size: 13px; color: var(--ink-soft); margin: 0 0 10px; }
-.fields { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
-.fields label { display: flex; flex-direction: column; font-size: 13px; color: var(--ink-soft); gap: 2px; }
-.fields select { min-height: 44px; min-width: 130px; padding: 0 10px; font: inherit; font-size: 16px; border: 2px solid var(--asphalt); border-radius: 3px; background: var(--paint); color: var(--ink); }
-.plan-out p { margin: 8px 0; font-size: 15px; }
-.lvtag { display: inline-block; padding: 0 8px; border-radius: 2px; font-size: 13px; line-height: 1.7; color: #fff; white-space: nowrap; }
-.lvtag.calm { background: var(--calm); }
-.lvtag.mid { background: var(--mid); color: var(--ink); }
-.lvtag.busy { background: var(--busy); }
-.plan-out .alt { border-left: 4px solid var(--calm); padding-left: 10px; }
-.plan-out .sub { color: var(--ink-soft); font-size: 13px; }
-.sim { margin-top: 12px; }
-.sim-label { display: block; font-size: 14px; margin: 4px 0 2px; }
-.sim-label output { font-family: var(--mono); font-size: 18px; font-weight: 500; margin-left: 6px; white-space: nowrap; }
-.sim input[type=range] { width: 100%; height: 44px; margin: 0; accent-color: var(--asphalt); cursor: pointer; }
-.sim input[type=range]:disabled { cursor: not-allowed; opacity: .5; }
-.sim-scale { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 12px; color: var(--ink-soft); }
-#sim-out p { margin: 8px 0; font-size: 15px; }
-#sim-out .big { font-size: 17px; }
-#sim-out ul { margin: 6px 0; padding-left: 1.2em; font-size: 14px; }
-#sim-out li { margin: 3px 0; }
-#sim-out .sub { color: var(--ink-soft); font-size: 13px; }
+:focus-visible { outline: 3px solid var(--t3); outline-offset: 2px; }
+.wrap { max-width: 880px; margin: 0 auto; padding: 0 16px; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+[hidden] { display: none !important; }
+
+/* 헤더 */
+.top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 18px; padding-bottom: 10px; }
+.top h1 { margin: 0; font-size: 24px; line-height: 1.2; letter-spacing: -.01em; font-weight: 800; }
+.top p { margin: 2px 0 0; font-size: 13px; color: var(--ink-2); }
+.icon-btn { flex: none; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--ctl); border-radius: 50%; background: transparent; cursor: pointer; color: var(--ink); }
+.icon-btn:hover { background: var(--paper-2); }
+.icon-btn svg { width: 20px; height: 20px; }
+.toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); max-width: calc(100vw - 32px); background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 999px; font-size: 14px; z-index: 10; text-align: center; }
+.toast:empty { display: none; }
+
+/* 탭 */
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--rule); margin: 4px 0 0; }
+.tabs button { min-height: 44px; padding: 0 14px; border: 0; border-bottom: 3px solid transparent; background: transparent; font-size: 16px; font-weight: 500; color: var(--ink-2); cursor: pointer; margin-bottom: -1px; }
+.tabs button:hover { color: var(--ink); }
+.tabs button[aria-selected="true"] { color: var(--ink); font-weight: 800; border-bottom-color: var(--t3); }
+
+/* 선택 컨트롤 */
+.pick { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 0; }
+.pick-label { margin: 14px 0 6px; font-size: 14px; color: var(--ink-2); }
+.seg { display: inline-flex; border: 1px solid var(--ctl); border-radius: 10px; overflow: hidden; background: var(--paper); }
+.seg button { min-height: 44px; min-width: 44px; padding: 0 12px; border: 0; border-left: 1px solid var(--rule); background: transparent; cursor: pointer; font-size: 16px; font-weight: 600; }
+.seg button:first-child { border-left: 0; }
+.seg button:hover:not([aria-pressed="true"]):not(:disabled) { background: var(--paper-2); }
+.seg button[aria-pressed="true"] { background: var(--t3); color: #fff; }
+.seg button:disabled { opacity: .45; cursor: not-allowed; }
+#days { flex: 1 1 320px; max-width: 480px; }
+#days button { flex: 1 1 0; padding: 0; }
+.seg.tiers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--rule); width: 100%; }
+.seg.tiers button { border: 0; background: var(--paper); line-height: 1.3; padding: 8px 6px; font-size: 15px; }
+.seg.tiers button[aria-pressed="true"] { background: var(--t3); }
+.seg.tiers small { display: block; font-size: 13px; font-weight: 400; opacity: .9; }
+.seg.tiny button { font-size: 13px; font-weight: 500; padding: 0 12px; }
+.seg.tiny button[aria-pressed="true"] { background: var(--t1); color: var(--ink); font-weight: 800; }
+
+/* 결론 문장 */
+.headline { margin: 22px 0 6px; font-size: clamp(21px, 4.4vw, 30px); line-height: 1.45; font-weight: 700; letter-spacing: -.015em; }
+.headline strong { font-weight: 800; background: linear-gradient(transparent 62%, var(--t1) 62%); padding: 0 1px; white-space: nowrap; }
+.meta { margin: 0 0 4px; font-size: 14px; color: var(--ink-2); }
+.badge { display: inline-block; margin-left: 6px; padding: 0 9px; border-radius: 999px; background: var(--paper-2); border: 1px solid var(--ctl); color: var(--ink); font-size: 13px; line-height: 1.6; vertical-align: 1px; white-space: nowrap; }
+
+/* 차트 */
+.chart-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; margin: 18px 0 2px; }
+.chart-top h2 { margin: 0; font-size: 16px; font-weight: 700; }
+.legend { display: flex; flex-wrap: wrap; gap: 2px 16px; font-size: 13px; color: var(--ink-2); margin: 0 0 4px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.lg-line { width: 20px; height: 0; border-top: 3px solid var(--t3); }
+.lg-dash { width: 20px; height: 0; border-top: 2px dashed var(--ink-2); }
+.lg-band { width: 20px; height: 10px; background: rgba(12, 94, 91, .2); border-top: 1px solid rgba(12, 94, 91, .75); border-bottom: 1px solid rgba(12, 94, 91, .75); }
+.lg-zone { width: 20px; height: 10px; background: linear-gradient(90deg, rgba(12, 94, 91, .05), rgba(12, 94, 91, .22)); border: 1px solid var(--rule); }
+figure.chart { margin: 0; }
+.plot { position: relative; width: 100%; touch-action: pan-y; user-select: none; -webkit-user-select: none; cursor: crosshair; }
+.plot svg { display: block; width: 100%; }
+.plot[tabindex="0"]:focus-visible { outline: 3px solid var(--t3); outline-offset: 2px; border-radius: 4px; }
+.plot .an { font-size: 13px; fill: var(--ink); font-weight: 600; paint-order: stroke; stroke: var(--paper); stroke-width: 4px; stroke-linejoin: round; }
+.plot .ax { font-size: 13px; fill: var(--ink-2); }
+.plot .zl { font-size: 13px; fill: var(--ink-2); paint-order: stroke; stroke: var(--paper); stroke-width: 3px; }
+.plot .flag { font-size: 13px; font-weight: 700; fill: #fff; }
+.tip { position: absolute; z-index: 2; pointer-events: none; background: var(--ink); color: #fff; font-size: 13px; line-height: 1.45; padding: 6px 10px; border-radius: 6px; max-width: 230px; }
+.tip b { font-weight: 800; }
+
+/* 방문 시각 플래너, 결과 */
+.sec-h { margin: 18px 0 2px; font-size: 18px; font-weight: 800; }
+.hint { margin: 0 0 8px; font-size: 14px; color: var(--ink-2); }
+.sl { display: block; margin: 0; }
+.sl-l { display: block; font-size: 14px; color: var(--ink-2); margin-left: var(--ml, 0); }
+.sl-l output { color: var(--ink); font-weight: 800; font-variant-numeric: tabular-nums; margin-left: 4px; }
+input[type=range] { -webkit-appearance: none; appearance: none; display: block; background: transparent; height: 44px; margin: 0; cursor: pointer; }
+#pl-arrive, #pl-depart { margin-left: calc(var(--ml, 14px) - 14px); width: calc(var(--pw, 300px) + 28px); max-width: 100%; }
+input[type=range]::-webkit-slider-runnable-track { height: 4px; background: var(--ctl); border-radius: 2px; }
+input[type=range]::-moz-range-track { height: 4px; background: var(--ctl); border-radius: 2px; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; margin-top: -12px; border-radius: 50%; background: var(--t3); border: 3px solid var(--paper); box-shadow: 0 0 0 1px var(--t3); }
+input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: var(--t3); border: 3px solid var(--paper); box-shadow: 0 0 0 1px var(--t3); }
+input[type=range]:disabled { cursor: not-allowed; opacity: .5; }
+.result { margin: 8px 0 0; padding: 14px 16px; background: var(--paper-2); border-radius: 8px; }
+.result p { margin: 6px 0; font-size: 16px; }
+.result .sub { display: block; color: var(--ink-2); font-size: 14px; }
+.result .alt { padding-left: 1.2em; text-indent: -1.2em; }
+.result .alt::before { content: "→ "; color: var(--t3); font-weight: 800; }
+.result .alt .lv { text-indent: 0; }
+.lv { display: inline-block; padding: 0 9px; border-radius: 999px; font-size: 13px; font-weight: 700; line-height: 1.65; white-space: nowrap; vertical-align: 1px; }
+.lv.calm { background: var(--t1); color: #0b3a38; }
+.lv.mid { background: var(--t2); color: #0b2e2c; }
+.lv.busy { background: var(--t3); color: #fff; }
+.oneline { margin: 14px 0 0; font-size: 14px; color: var(--ink-2); }
+.prose { margin: 8px 0 0; font-size: 15px; }
+.linkbtn { display: inline-block; margin-top: 4px; min-height: 44px; padding: 0; border: 0; background: transparent; color: var(--t3); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; font-size: 15px; text-align: left; }
+
+/* 시뮬레이터 */
+.sim { margin: 22px 0 0; padding-top: 4px; border-top: 1px solid var(--rule); }
+.sim h2 { margin: 14px 0 2px; font-size: 18px; font-weight: 800; }
+.sim-label { display: block; font-size: 14px; margin: 8px 0 0; }
+.sim-label output { font-size: 20px; font-weight: 800; margin-left: 6px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sim input[type=range] { width: 100%; }
+.sim-scale { display: flex; justify-content: space-between; font-size: 13px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+#sim-out p { margin: 8px 0; font-size: 16px; }
+#sim-out .big { font-size: 17px; }
+#sim-out ul { margin: 6px 0; padding-left: 1.2em; font-size: 15px; }
+#sim-out li { margin: 4px 0; }
+#sim-out .sub { color: var(--ink-2); font-size: 14px; }
+
+/* 펼침 */
+details.fold { border-top: 1px solid var(--rule); font-size: 15px; }
+details.fold:last-of-type { border-bottom: 1px solid var(--rule); }
+details.fold summary { min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; font-weight: 700; list-style: none; }
+details.fold summary::-webkit-details-marker { display: none; }
+details.fold summary::after { content: "+"; font-size: 22px; font-weight: 400; color: var(--ink-2); }
+details.fold[open] summary::after { content: "−"; }
+.fold-body { padding: 2px 0 14px; color: var(--ink); }
+.fold-body ul { margin: 0; padding-left: 1.2em; color: var(--ink-2); }
+.fold-body li { margin: 5px 0; }
+.fold-body p { margin: 6px 0; }
+.fold-body h3 { margin: 12px 0 4px; font-size: 15px; font-weight: 800; }
+.fold-body table { border-collapse: collapse; margin: 8px 0; width: 100%; font-size: 14px; }
+.fold-body th, .fold-body td { border-bottom: 1px solid var(--rule); padding: 5px 6px; text-align: left; font-variant-numeric: tabular-nums; }
+.source { margin: 14px 0 40px; font-size: 13px; color: var(--ink-2); }
+
+/* 데이터 현황 */
+.lede { margin: 22px 0 6px; font-size: clamp(20px, 4vw, 26px); line-height: 1.45; font-weight: 700; letter-spacing: -.01em; }
+.lede small { display: block; font-size: 15px; font-weight: 400; color: var(--ink-2); margin-top: 4px; letter-spacing: 0; }
+.sec { margin: 22px 0 0; padding-top: 4px; border-top: 1px solid var(--rule); }
+.sec h2 { margin: 14px 0 2px; font-size: 18px; font-weight: 800; }
 .table-scroll { overflow-x: auto; }
 .st-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-.st-table th, .st-table td { padding: 6px 8px; border-bottom: 1px solid #d5d9d8; text-align: left; vertical-align: middle; }
-.st-table thead th { font-size: 12px; color: var(--ink-soft); font-weight: 500; }
-.st-table td.num, .st-table th.num { font-family: var(--mono); font-size: 13px; white-space: nowrap; text-align: right; }
-.st-table tr.best td, .st-table tr.best th { background: #e6f3ee; font-weight: 700; }
-.st-bar { height: 14px; min-width: 2px; background: var(--calm); border-radius: 2px; }
-.st-bar.x { background: #b9b8b1; }
+.st-table th, .st-table td { padding: 6px 8px; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: middle; font-weight: 400; }
+.st-table tbody th { font-weight: 600; }
+.st-table thead th { font-size: 13px; color: var(--ink-2); font-weight: 600; }
+.st-table td.num, .st-table th.num { font-size: 14px; white-space: nowrap; text-align: right; font-variant-numeric: tabular-nums; }
+.st-table tr.best td, .st-table tr.best th { background: var(--t1); font-weight: 700; }
+.st-bar { height: 12px; min-width: 2px; background: var(--t3); border-radius: 2px; }
+.st-bar.x { background: #b6b0a0; }
 .st-barcell { width: 30%; }
 #st-months th, #st-months td { white-space: nowrap; }
 #st-months td.st-barcell { min-width: 48px; }
 #st-months td:last-child { white-space: normal; }
-.st-list { margin: 0; padding-left: 1.3em; font-size: 14px; }
-.st-list li { margin: 5px 0; }
-.retry { min-height: 44px; padding: 0 18px; border: 2px solid var(--asphalt); background: var(--asphalt); color: var(--paint); border-radius: 3px; cursor: pointer; font-weight: 700; }
+.st-list { margin: 6px 0 0; padding-left: 1.3em; font-size: 15px; }
+.st-list li { margin: 6px 0; }
+
+.err { border: 1px solid var(--ctl); background: var(--paper-2); padding: 14px; border-radius: 8px; margin: 20px 0; }
+.retry { min-height: 44px; padding: 0 18px; border: 0; background: var(--t3); color: #fff; border-radius: 8px; cursor: pointer; font-weight: 700; }
 .retry:disabled { opacity: .6; cursor: wait; }
-[hidden] { display: none !important; }
 
 @media (max-width: 640px) {
-  .signs { grid-template-columns: 1fr; }
-  .row.tiers { grid-template-columns: repeat(2, 1fr); }
-  .bays { height: 200px; }
-  .hours { font-size: 10px; }
-  .row.days button { font-size: 17px; }
+  .seg.tiers { grid-template-columns: repeat(2, 1fr); }
+  .tabs button { padding: 0 10px; }
+  .top h1 { font-size: 22px; }
 }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; scroll-behavior: auto !important; } }
 </style>
 </head>
 <body>
-<header class="sign">
+<header class="top">
   <div class="wrap">
-    <h1>올팍 피크타임</h1>
-    <span class="tag">2025년 관측 데이터 기반</span>
+    <div>
+      <h1>올팍 피크타임</h1>
+      <p>올림픽공원 주차 혼잡 안내 · 2025년 관측 데이터 기반</p>
+    </div>
+    <button type="button" id="copy-link" class="icon-btn" aria-label="이 화면 링크 복사" title="이 화면 링크 복사">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07L11.5 4.5"/><path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07l1.33-1.33"/></svg>
+    </button>
   </div>
 </header>
+<div id="copy-msg" class="toast" role="status" aria-live="polite"></div>
 
 <main class="wrap">
-  <div class="tabbar">
-    <div class="tabs" role="tablist" aria-label="화면 선택">
-      <button role="tab" id="tab-visitor" aria-selected="true" aria-controls="view">방문객</button>
-      <button role="tab" id="tab-operator" aria-selected="false" aria-controls="view">운영자</button>
-      <button role="tab" id="tab-status" aria-selected="false" aria-controls="status-view">데이터 현황</button>
-    </div>
-    <div class="share">
-      <button type="button" id="copy-link" class="copy">이 화면 링크 복사</button>
-      <span id="copy-msg" role="status" aria-live="polite"></span>
-    </div>
-  </div>
-  <div id="app-view">
-  <p class="lede" id="lede"></p>
-
-  <ul class="row days" id="days" aria-label="요일 선택"></ul>
-  <div id="tier-wrap" hidden>
-    <p class="lede" style="font-size:15px;margin:8px 0 0">공연 규모 <small>그날 관람객 수의 최댓값 기준 (관측한 날 수)</small></p>
-    <ul class="row tiers" id="tiers" aria-label="공연 규모 선택"></ul>
-  </div>
-  <section class="card sim" id="sim" aria-labelledby="sim-title" hidden>
-    <h2 id="sim-title">관람객 수 시뮬레이터</h2>
-    <p class="hint">위 공연 규모 버튼은 프리셋입니다. 슬라이더로 그날 공연 관람객 수를 바꿔 보면, 같은 요일 유형의 관측 관계로 저녁(17~21시) 평균 주차 차량을 어림해 볼 수 있어요.</p>
-    <label for="sim-range" class="sim-label">그날 공연 관람객 수(시간별 최댓값) <output id="sim-val" for="sim-range"></output></label>
-    <input type="range" id="sim-range" min="0" max="1" step="0.1" value="0" aria-describedby="sim-reason sim-out">
-    <div class="sim-scale" aria-hidden="true"><span id="sim-min"></span><span id="sim-max"></span></div>
-    <div id="sim-out" aria-live="polite"></div>
-    <p class="hint" id="sim-reason" style="margin:8px 0 0"></p>
-  </section>
-  <div class="metric" id="metric" role="group" aria-label="보여 줄 지표" hidden>
-    <button type="button" data-m="cars" aria-pressed="true">주차 중인 차량</button>
-    <button type="button" data-m="out" aria-pressed="false">시간당 출차</button>
+  <div class="tabs" role="tablist" aria-label="화면 선택">
+    <button role="tab" id="tab-visitor" aria-selected="true" aria-controls="app-view">방문객</button>
+    <button role="tab" id="tab-operator" aria-selected="false" aria-controls="app-view" tabindex="-1">운영자</button>
+    <button role="tab" id="tab-status" aria-selected="false" aria-controls="status-view" tabindex="-1">데이터 현황</button>
   </div>
 
-  <section class="lot" id="view" aria-labelledby="lot-title">
-    <div class="lot-head">
-      <div><h2 id="lot-title"></h2><span class="badge" id="lot-badge" hidden></span></div>
-      <div class="legend" aria-hidden="true">
-        <span><i class="lvl-calm"></i>한산</span><span><i class="lvl-mid"></i>보통</span><span><i class="lvl-busy"></i>붐빔</span>
-        <span><i class="lvl-mid" style="opacity:.35"></i><span id="ghost-name"></span></span>
+  <div id="app-view" role="tabpanel" aria-labelledby="tab-visitor">
+    <div class="pick" role="group" aria-label="요일 유형 선택">
+      <div class="seg" id="days"></div>
+      <div class="seg" id="days-hol"></div>
+    </div>
+    <div id="tier-wrap" hidden>
+      <p class="pick-label" id="tier-label">공연 규모 · 그날 관람객 수의 최댓값 기준 (관측한 날 수)</p>
+      <div class="seg tiers" id="tiers" role="group" aria-labelledby="tier-label"></div>
+    </div>
+
+    <h2 class="headline" id="headline"></h2>
+    <p class="meta" id="meta"></p>
+
+    <div class="chart-top">
+      <h2 id="chart-title"></h2>
+      <div class="seg tiny" id="metric" role="group" aria-label="보여 줄 지표">
+        <button type="button" data-m="cars" aria-pressed="true">주차 중인 차량</button>
+        <button type="button" data-m="out" aria-pressed="false">시간당 출차</button>
       </div>
     </div>
-    <div class="bays" id="bays" role="group" aria-label="시간대별 막대"></div>
-    <div class="hours" id="hours" aria-hidden="true"></div>
-    <div class="readout" id="readout" aria-live="polite"></div>
-  </section>
+    <div class="legend" id="legend"></div>
+    <figure class="chart" id="chart-fig">
+      <div class="plot" id="plot"><svg id="plot-svg" aria-hidden="true" focusable="false"></svg><div class="tip" id="tip" hidden></div></div>
+      <div class="sr-only"><table id="sr-table"></table></div>
+    </figure>
 
-  <div class="signs" id="signs"></div>
-  <p class="note" id="note" hidden></p>
+    <section id="planner" aria-labelledby="pl-title" hidden>
+      <h3 class="sec-h" id="pl-title">방문 시각 플래너</h3>
+      <p class="hint">차트를 눌러 끌거나, 아래 슬라이더로 도착·출발 시각을 고르세요. 위에서 고른 요일 유형 기준이에요.</p>
+      <label class="sl" for="pl-arrive"><span class="sl-l">도착 희망 시각<output id="pl-a-out" for="pl-arrive"></output></span></label>
+      <input type="range" id="pl-arrive" min="5" max="23" step="1" value="10">
+      <label class="sl" for="pl-depart"><span class="sl-l">출발 희망 시각<output id="pl-d-out" for="pl-depart"></output></span></label>
+      <input type="range" id="pl-depart" min="5" max="23" step="1" value="16">
+      <div class="result" id="pl-out" aria-live="polite"></div>
+    </section>
 
-  <section class="card" id="planner" aria-labelledby="pl-title" hidden>
-    <h2 id="pl-title">방문 시각 플래너</h2>
-    <p class="hint">위에서 고른 요일 유형을 기준으로, 도착·출발 시각의 상태를 알려 드려요.</p>
-    <div class="fields">
-      <label for="pl-arrive">도착 희망 시각<select id="pl-arrive"></select></label>
-      <label for="pl-depart">출발 희망 시각<select id="pl-depart"></select></label>
+    <section class="sim" id="sim" aria-labelledby="sim-title" hidden>
+      <h2 id="sim-title">관람객 수 시뮬레이터</h2>
+      <p class="hint">위 공연 규모 버튼은 프리셋입니다. 슬라이더로 그날 공연 관람객 수를 바꿔 보면, 같은 요일 유형의 관측 관계로 저녁(17~21시) 평균 주차 차량을 어림해 볼 수 있어요.</p>
+      <label for="sim-range" class="sim-label">그날 공연 관람객 수(시간별 최댓값) <output id="sim-val" for="sim-range"></output></label>
+      <input type="range" id="sim-range" min="0" max="1" step="0.1" value="0" aria-describedby="sim-reason sim-out">
+      <div class="sim-scale" aria-hidden="true"><span id="sim-min"></span><span id="sim-max"></span></div>
+      <div id="sim-out" aria-live="polite"></div>
+      <p class="hint" id="sim-reason" style="margin:8px 0 0"></p>
+    </section>
+
+    <p class="oneline" id="oneline"></p>
+    <p class="prose" id="op-note" hidden></p>
+    <div id="to-operator" hidden>
+      <p class="prose" style="margin-bottom:0">공연이 있는 날은 저녁(17~21시)이 더 붐비고 출차가 몰릴 수 있어요. 공연 규모별 차이는 운영자 화면에서 볼 수 있어요.</p>
+      <button type="button" class="linkbtn" id="go-operator">운영자 화면에서 공연 규모별로 보기</button>
     </div>
-    <div class="plan-out" id="pl-out" aria-live="polite"></div>
-    <p class="hint" style="margin:10px 0 0">같은 유형 날들의 <b>중앙값</b> 기준이며 보장이 아닙니다. 한산·보통·붐빔은 이 자료 안에서의 상대 구분입니다.</p>
-  </section>
-
-  <details class="basis">
-    <summary>이 수치의 근거 (검증 결과)</summary>
-    <div id="basis"></div>
-  </details>
-
   </div><!-- /app-view -->
 
-  <section id="status-view" aria-labelledby="st-title" hidden>
+  <section id="status-view" role="tabpanel" aria-labelledby="st-title" hidden>
     <p class="lede" id="st-title">이 화면의 수치는 어디서 왔고, 어디가 비어 있을까요?<small>2025년 입출차 원천 기록의 빈틈과 검증 결과를 그대로 보여 줍니다.</small></p>
-    <section class="card" aria-labelledby="st-m-title">
+    <section class="sec" aria-labelledby="st-m-title">
       <h2 id="st-m-title">월별 입차 기록</h2>
       <p class="hint" id="st-m-hint"></p>
       <div class="table-scroll"><table class="st-table"><caption class="sr-only">월별 입차 기록 건수와 분석 사용 여부</caption><thead><tr><th scope="col">월</th><th scope="col">입차 기록</th><th scope="col">건수</th><th scope="col">분석한 날</th><th scope="col">사용</th></tr></thead><tbody id="st-months"></tbody></table></div>
     </section>
-    <section class="card" aria-labelledby="st-d-title">
+    <section class="sec" aria-labelledby="st-d-title">
       <h2 id="st-d-title">원천 중복과 기록 기간</h2>
       <ul class="st-list" id="st-dup"></ul>
     </section>
-    <section class="card" aria-labelledby="st-v-title">
+    <section class="sec" aria-labelledby="st-v-title">
       <h2 id="st-v-title">검증 표</h2>
       <p class="hint" id="st-v-hint"></p>
       <div class="table-scroll"><table class="st-table"><caption class="sr-only">모델별 평균 절대 오차</caption><thead><tr><th scope="col">방법</th><th scope="col">전체 오차(대)</th><th scope="col">저녁 17~21시 오차(대)</th><th scope="col">관람객 8천 명 이상 날 저녁 오차(대)</th></tr></thead><tbody id="st-valid"></tbody></table></div>
       <p class="hint" id="st-v-note" style="margin:8px 0 0"></p>
     </section>
-    <section class="card" aria-labelledby="st-w-title">
+    <section class="sec" aria-labelledby="st-w-title">
       <h2 id="st-w-title">추가로 개방되면 좋은 데이터</h2>
       <p class="hint">이 서비스를 만들며 막힌 지점입니다. 개선되면 안내할 수 있는 범위가 넓어집니다.</p>
       <ol class="st-list" id="st-wish"></ol>
     </section>
   </section>
 
-  <section class="limits" aria-labelledby="lim-title">
-    <h2 id="lim-title">이 화면을 읽을 때 알아둘 점</h2>
-    <ul>
-      <li>2025년 <b id="lim-months">1~7월·10월</b>(<span id="lim-days">235</span>일)의 관측 분포입니다. 앞날을 맞히는 예측값이 아니라, 같은 유형의 날이 어땠는지를 보여 줍니다.</li>
-      <li>7월 31일~9월 30일과 11월 이후는 원천 입출차 기록이 거의 없어 뺐습니다. 매월 말일도 기록이 비어 제외했습니다. 계절 변화는 한 해 자료라 배울 수 없습니다.</li>
-      <li>'주차 중인 차량'은 기관 시간표의 주차대수입니다. '시간당 출차'는 입출차 기록에 남은 차량만 센 값이라 실제보다 적을 수 있습니다. 출차시간이 빈 행이 없어 아직 나가지 않은 차량은 기록에 없는 것으로 보입니다.</li>
-      <li>한산·보통·붐빔은 이 자료 안에서의 상대 비교(3분위)이며 공식 혼잡도나 주차 가능 대수가 아닙니다.</li>
-      <li>기관 자료에서 주말은 전부 공연일로 표시돼 '공연이 있는 날'과 '없는 날'을 주말끼리 비교할 수 없습니다. 그래서 같은 요일 유형 안에서 <b>관람객 규모</b>에 따른 차이만 보여 줍니다. 이 차이는 조건부 비교이며 공연이 원인이라는 뜻이 아닙니다.</li>
-      <li>공휴일·연휴는 <span id="lim-hol">17</span>일, 대규모 공연이 있었던 금요일은 <span id="lim-big">3</span>일뿐이라 거칠게 읽어 주세요. 관측한 날 수를 함께 표시했습니다.</li>
-      <li>공연장 대관은 날짜 정보가 없어 운영자 화면에 포함하지 못했습니다.</li>
-      <li>출처: 한국체육산업개발(주) 올림픽공원 연계 데이터(시간대별 주차·공연·기상)와 입출차 정보 전체구역 (문화포털 오픈API, 공공데이터포털).</li>
-    </ul>
-  </section>
+  <div style="margin-top:22px">
+    <details class="fold" id="limits">
+      <summary>읽는 법과 한계</summary>
+      <div class="fold-body">
+        <h3>이 화면의 말</h3>
+        <ul>
+          <li><b>평소</b>는 같은 유형 날들의 중앙값(가운데 값)이고, <b>대부분의 날</b>은 그 값들의 10~90% 범위(가장 적은 10%와 가장 많은 10%는 뺀 범위)입니다. 평소 값은 같은 유형 날들의 중앙값 기준이며 보장이 아닙니다.</li>
+          <li>한산·보통·붐빔은 이 자료 안에서의 상대 구분(3분위)입니다. 차트의 점선은 그 경계이고, 바탕이 짙을수록 붐빔입니다.</li>
+        </ul>
+        <h3>한계</h3>
+        <ul>
+          <li>2025년 <b id="lim-months">1~7월·10월</b>(<span id="lim-days">235</span>일)의 관측 분포입니다. 앞날을 맞히는 예측값이 아니라, 같은 유형의 날이 어땠는지를 보여 줍니다.</li>
+          <li>7월 31일~9월 30일과 11월 이후는 원천 입출차 기록이 거의 없어 뺐습니다. 매월 말일도 기록이 비어 제외했습니다. 계절 변화는 한 해 자료라 배울 수 없습니다.</li>
+          <li>'주차 중인 차량'은 기관 시간표의 주차대수입니다. '시간당 출차'는 입출차 기록에 남은 차량만 센 값이라 실제보다 적을 수 있습니다. 출차시간이 빈 행이 없어 아직 나가지 않은 차량은 기록에 없는 것으로 보입니다.</li>
+          <li>한산·보통·붐빔은 이 자료 안에서의 상대 비교(3분위)이며 공식 혼잡도나 주차 가능 대수가 아닙니다.</li>
+          <li>기관 자료에서 주말은 전부 공연일로 표시돼 '공연이 있는 날'과 '없는 날'을 주말끼리 비교할 수 없습니다. 그래서 같은 요일 유형 안에서 <b>관람객 규모</b>에 따른 차이만 보여 줍니다. 이 차이는 조건부 비교이며 공연이 원인이라는 뜻이 아닙니다.</li>
+          <li>공휴일·연휴는 <span id="lim-hol">17</span>일, 대규모 공연이 있었던 금요일은 <span id="lim-big">3</span>일뿐이라 거칠게 읽어 주세요. 관측한 날 수를 함께 표시했습니다.</li>
+          <li>공연장 대관은 날짜 정보가 없어 운영자 화면에 포함하지 못했습니다.</li>
+        </ul>
+      </div>
+    </details>
+    <details class="fold" id="basis-fold">
+      <summary>이 수치의 근거 (검증 결과)</summary>
+      <div class="fold-body" id="basis"></div>
+    </details>
+    <p class="source">출처: 한국체육산업개발(주) 올림픽공원 연계 데이터(시간대별 주차·공연·기상)와 입출차 정보 전체구역 (문화포털 오픈API, 공공데이터포털).</p>
+  </div>
 </main>
 
 <script id="logic">
@@ -408,7 +441,59 @@ var PeakLogic = (function () {
     return out;
   }
 
-  var api = { H_MIN: H_MIN, H_MAX: H_MAX, isHour: isHour, levelOf: levelOf, planVisit: planVisit,
+  /* 차트·결론 문장 재료(모두 JSON 값에서 계산). 구간 표기는 '시작~끝 시'이며 끝 시각은 마지막 칸의 다음 정시(칸 h = [h, h+1))다. */
+  // 눈금: max 를 덮는 '보기 좋은' 간격(1·2·2.5·5 × 10^k)으로 4칸 안팎.
+  function niceScale(max, target) {
+    target = target || 4;
+    if (!(max > 0)) return { step: 1, top: 1, ticks: [0, 1] };
+    var raw = max / target, mag = Math.pow(10, Math.floor(Math.log10(raw))), c = [1, 2, 2.5, 5, 10], step = mag * 10, i, v, ticks = [];
+    for (i = 0; i < c.length; i++) { if (c[i] * mag >= raw - 1e-9) { step = c[i] * mag; break; } }
+    var top = Math.ceil(max / step - 1e-9) * step;
+    for (v = 0; v <= top + 1e-9; v += step) ticks.push(Math.round(v * 100) / 100);
+    return { step: step, top: top, ticks: ticks };
+  }
+  function peakHour(a) { var pk = null, h; for (h = H_MIN; h <= H_MAX; h++) { if (a[h] != null && (pk === null || a[h] > a[pk])) pk = h; } return pk; }
+  // [from,to] 안에서 연속 2칸 합이 가장 작은 시작 시각. 값이 없는 칸은 건너뛴다.
+  function minWindow(a, from, to) {
+    var best = null, i, s;
+    for (i = from; i < to; i++) { if (a[i] == null || a[i + 1] == null) continue; s = a[i] + a[i + 1]; if (best === null || s < best.s) best = { h: i, s: s }; }
+    return best;
+  }
+  // 값이 '붐빔'인 연속 시각 중 peakAt 을 포함하는 구간 {from, to(마지막 칸의 다음 정시)}. 붐빔 시각이 없으면 null.
+  function busyRun(series, t, peakAt) {
+    var h, a, b;
+    if (peakAt == null || levelOf(series[peakAt], t) !== "busy") return null;
+    a = peakAt; b = peakAt;
+    while (a - 1 >= H_MIN && levelOf(series[a - 1], t) === "busy") a--;
+    while (b + 1 <= H_MAX && levelOf(series[b + 1], t) === "busy") b++;
+    return { from: a, to: b + 1 };
+  }
+  // 출차 피크 이후 끝(23시)까지 계속 '한산'인 가장 이른 시각. 없으면 null.
+  function reliefAfter(out, t, afterHour) {
+    var h, k, ok;
+    for (h = afterHour + 1; h <= H_MAX; h++) {
+      ok = true;
+      for (k = h; k <= H_MAX; k++) { if (levelOf(out[k], t) !== "calm") { ok = false; break; } }
+      if (ok) return h;
+    }
+    return null;
+  }
+  /* 방문객 결론 문장 재료: calm(9~18시 중 가장 한산한 2칸), busy(평소 값이 붐빔인 연속 구간, 없으면 null),
+     relief(출차 피크 뒤 끝까지 한산이면 {kind:'after', from}, 아니면 14~23시 중 출차가 가장 한산한 2칸 {kind:'window', from, to}) */
+  function visitorHeadline(group, thr) {
+    var cars = group.cars.p50, out = group.out.p50, cw = minWindow(cars, 9, 17), pk = peakHour(cars), op = peakHour(out), ra, ow;
+    ra = op == null ? null : reliefAfter(out, thr.out, op);
+    ow = minWindow(out, 14, 22);
+    return {
+      calm: cw ? { from: cw.h, to: cw.h + 2 } : null,
+      busy: busyRun(cars, thr.cars, pk),
+      peak: pk,
+      relief: ra != null ? { kind: "after", from: ra } : ow ? { kind: "window", from: ow.h, to: ow.h + 2 } : null
+    };
+  }
+
+  var api = { niceScale: niceScale, peakHour: peakHour, minWindow: minWindow, busyRun: busyRun, reliefAfter: reliefAfter, visitorHeadline: visitorHeadline,
+              H_MIN: H_MIN, H_MAX: H_MAX, isHour: isHour, levelOf: levelOf, planVisit: planVisit,
               modelFor: modelFor, sliderBounds: sliderBounds, clampToBounds: clampToBounds, predictEvening: predictEvening,
               SMALL_N: SMALL_N, isSmall: isSmall, HOLIDAYS_2026: HOLIDAYS_2026, groupIndexForDate: groupIndexForDate,
               buildHash: buildHash, parseHash: parseHash };
@@ -420,11 +505,12 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
 (function () {
   "use strict";
   var P = PeakLogic;
-  var H0 = 5, H1 = 23, N = H1 - H0 + 1;
-  var S = { data: null, view: "visitor", g: 0, tier: 0, metric: "cars", hour: null, arrive: 10, depart: 16, sim: null };
+  var H0 = 5, H1 = 23;
+  var S = { data: null, view: "visitor", g: 0, tier: 0, metric: "cars", hour: null, hover: null, arrive: 10, depart: 16, sim: null };
   var $ = function (id) { return document.getElementById(id); };
   var fmt = function (v) { return v == null ? "–" : Math.round(v).toLocaleString("ko-KR"); };
   var LV = { calm: "한산", mid: "보통", busy: "붐빔" };
+  var NS = "http://www.w3.org/2000/svg";
 
   // 데이터 불러오기: 실패하면 안내와 '다시 시도' 버튼을 보여 준다.
   var initialized = false;
@@ -457,74 +543,69 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
   function tierKey(g) { return g.key === "fri" ? "fri" : (g.key === "sat" || g.key === "sun") ? "weekend" : null; }
   function tierList() { var k = tierKey(S.data.groups[S.g]); return k ? S.data.tiers[k] : null; }
   function thr() { return S.metric === "cars" ? S.data.meta.cars_thresholds : S.data.meta.out_thresholds; }
+  function thrBoth() { return { cars: S.data.meta.cars_thresholds, out: S.data.meta.out_thresholds }; }
   function level(v) { return P.levelOf(v, thr()) || "calm"; }
+  function eunNeun(word) { var c = word.charCodeAt(word.length - 1) - 0xAC00; return c >= 0 && c <= 11171 && c % 28 !== 0 ? "은" : "는"; }
+  function signed(v) { var r = Math.round(v); return (r >= 0 ? "+" : "−") + Math.abs(r).toLocaleString("ko-KR"); }
+  function mean(a, from, to) { var s = 0, i; for (i = from; i <= to; i++) s += a[i]; return s / (to - from + 1); }
+  function lvTag(lv) { return '<span class="lv ' + lv + '">' + LV[lv] + '</span>'; }
 
-  // 현재 화면의 막대(주 값)와 흐린 막대(비교 값), 24시간 배열
+  // 현재 차트 계열: main(굵은 선), base(비교 기준 점선), band(대부분의 날 띠)
   function series() {
-    var g = S.data.groups[S.g], m = S.metric, tl = tierList();
-    if (S.view === "visitor") {
-      return { main: g[m].p50, ghost: g[m].p90, lo: g[m].p10, ghostName: "10~90% 상단(p90)", mainName: "중앙값" };
-    }
-    if (tl) {
+    var g = S.data.groups[S.g], m = S.metric, tl = tierList(), key = m === "cars" ? "cars_mean" : "out_mean";
+    if (S.view === "operator" && tl) {
       var base = null, i;
       for (i = 0; i < tl.length; i++) { if (tl[i].n_days > 0) { base = tl[i]; break; } }
       var cur = tl[S.tier] && tl[S.tier].n_days > 0 ? tl[S.tier] : base;
-      var key = m === "cars" ? "cars_mean" : "out_mean";
-      return { main: cur[key], ghost: base[key], cur: cur, base: base, ghostName: "기준: " + sh(base.label), mainName: "평균" };
+      return { main: cur[key], base: cur === base ? null : base[key], band: null, mainName: "평균", cur: cur, baseT: base, tier: true };
     }
-    return { main: g[m].mean, ghost: g[m].p90, ghostName: "p90", mainName: "평균" };
+    if (S.view === "operator") return { main: g[m].mean, base: null, band: { lo: g[m].p10, hi: g[m].p90 }, mainName: "평균" };
+    return { main: g[m].p50, base: null, band: { lo: g[m].p10, hi: g[m].p90 }, mainName: "평소" };
   }
+  // 세로축은 모든 유형을 같은 눈금으로 비교할 수 있도록 지표별 전체 최댓값을 쓴다.
   function topOf() {
     var top = 0, m = S.metric;
     S.data.groups.forEach(function (g) { g[m].p90.forEach(function (v) { if (v != null && v > top) top = v; }); });
     ["fri", "weekend"].forEach(function (k) { S.data.tiers[k].forEach(function (t) { var a = t[m === "cars" ? "cars_mean" : "out_mean"]; if (a) a.forEach(function (v) { if (v != null && v > top) top = v; }); }); });
-    return Math.ceil(top / 100) * 100;
+    return top;
   }
 
   function init() {
-    var days = $("days");
+    var days = $("days"), hol = $("days-hol");
     S.data.groups.forEach(function (g, i) {
-      var li = document.createElement("li"), b = document.createElement("button");
-      b.type = "button"; b.textContent = g.label; b.setAttribute("aria-label", groupName(g) + " (관측 " + g.n_days + "일" + (P.isSmall(g.n_days) ? ", 참고용" : "") + ")");
-      b.addEventListener("click", function () { S.g = i; S.tier = defaultTier(); S.sim = null; S.hour = null; render(); });
-      li.appendChild(b); days.appendChild(li);
+      var b = document.createElement("button");
+      b.type = "button"; b.textContent = g.key === "hol" ? "공휴일·연휴" : g.label;
+      b.setAttribute("aria-label", groupName(g) + " (관측 " + g.n_days + "일" + (P.isSmall(g.n_days) ? ", 참고용" : "") + ")");
+      b.addEventListener("click", function () { S.g = i; S.tier = defaultTier(); S.sim = null; S.hour = null; S.hover = null; render(); });
+      (g.key === "hol" ? hol : days).appendChild(b);
     });
-    var hrs = $("hours");
-    for (var h = H0; h <= H1; h++) { var s = document.createElement("span"); s.textContent = (h - H0) % 3 === 0 ? h : ""; hrs.appendChild(s); }
-    var bays = $("bays");
-    for (var i = 0; i < N; i++) {
-      (function (hour) {
-        var b = document.createElement("button"); b.type = "button"; b.className = "bay";
-        b.addEventListener("click", function () { S.hour = hour; render(); });
-        b.addEventListener("mouseenter", function () { readout(hour); });
-        b.addEventListener("focus", function () { readout(hour); });
-        b.innerHTML = '<span class="range"></span><span class="car"></span>';
-        bays.appendChild(b);
-      })(H0 + i);
-    }
-    bays.addEventListener("mouseleave", function () { readout(S.hour); });
-    function scrub(e) {
-      var r = bays.getBoundingClientRect(), i = Math.floor((e.clientX - r.left) / r.width * N);
-      if (i >= 0 && i < N && H0 + i !== S.hour) { S.hour = H0 + i; render(); }
-    }
-    bays.addEventListener("pointerdown", scrub);
-    bays.addEventListener("pointermove", function (e) { if (e.buttons) scrub(e); });
-    $("tab-visitor").addEventListener("click", function () { S.view = "visitor"; S.hour = null; render(); });
-    $("tab-operator").addEventListener("click", function () { S.view = "operator"; S.hour = null; S.tier = defaultTier(); render(); });
-    $("tab-status").addEventListener("click", function () { S.view = "status"; render(); });
+    var tabs = [$("tab-visitor"), $("tab-operator"), $("tab-status")], views = ["visitor", "operator", "status"];
+    tabs.forEach(function (t, i) {
+      t.addEventListener("click", function () {
+        S.view = views[i]; S.hour = null; S.hover = null;
+        if (S.view === "operator") S.tier = defaultTier();
+        render();
+      });
+      t.addEventListener("keydown", function (e) { // 좌우 화살표·Home·End 로 탭 이동
+        var n = null;
+        if (e.key === "ArrowRight") n = (i + 1) % 3; else if (e.key === "ArrowLeft") n = (i + 2) % 3; else if (e.key === "Home") n = 0; else if (e.key === "End") n = 2;
+        if (n == null) return;
+        e.preventDefault(); tabs[n].focus(); tabs[n].click();
+      });
+    });
     Array.prototype.forEach.call($("metric").querySelectorAll("button"), function (b) {
-      b.addEventListener("click", function () { S.metric = b.getAttribute("data-m"); S.hour = null; render(); });
+      b.addEventListener("click", function () { S.metric = b.getAttribute("data-m"); S.hour = null; S.hover = null; render(); });
     });
+    $("go-operator").addEventListener("click", function () { S.view = "operator"; S.hour = null; S.hover = null; S.tier = defaultTier(); render(); window.scrollTo(0, 0); });
     $("sim-range").addEventListener("input", function () { S.sim = parseFloat(this.value); renderSim(); syncHash(); });
-    // 방문 시각 플래너 입력(도착·출발 시각)
-    ["pl-arrive", "pl-depart"].forEach(function (id) {
-      var sel = $(id);
-      for (var h = P.H_MIN; h <= P.H_MAX; h++) { var o = document.createElement("option"); o.value = h; o.textContent = h + "시"; sel.appendChild(o); }
-    });
-    $("pl-arrive").addEventListener("change", function () { S.arrive = parseInt(this.value, 10); if (S.depart < S.arrive) S.depart = S.arrive; render(); });
-    $("pl-depart").addEventListener("change", function () { S.depart = parseInt(this.value, 10); render(); });
+    // 방문 시각 플래너 슬라이더(차트의 핸들과 연동)
+    $("pl-arrive").addEventListener("input", function () { setHandle("arrive", parseInt(this.value, 10)); renderPlan(); });
+    $("pl-depart").addEventListener("input", function () { setHandle("depart", parseInt(this.value, 10)); renderPlan(); });
     $("copy-link").addEventListener("click", copyLink);
     window.addEventListener("hashchange", applyHash); // 같은 탭에서 주소만 바뀐 링크를 열 때(replaceState 로 바꾼 해시는 이벤트를 만들지 않는다)
+    initPlot();
+    var rt = null;
+    window.addEventListener("resize", function () { clearTimeout(rt); rt = setTimeout(function () { if (S.view !== "status") drawChart(); }, 80); });
     basis();
     applyHash();
   }
@@ -543,7 +624,7 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
     if (q.d != null) S.depart = q.d;
     if (S.depart < S.arrive) S.depart = S.arrive;
     S.sim = q.s != null ? q.s : null;
-    S.hour = null;
+    S.hour = null; S.hover = null;
     render();
   }
   function currentHash() {
@@ -585,54 +666,260 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
 
   function render() {
     var d = S.data, g = d.groups[S.g], visitor = S.view === "visitor", tl = tierList(), status = S.view === "status";
-    $("tab-visitor").setAttribute("aria-selected", visitor); $("tab-operator").setAttribute("aria-selected", S.view === "operator"); $("tab-status").setAttribute("aria-selected", status);
-    $("app-view").hidden = status; $("status-view").hidden = !status;
+    var tabs = { visitor: $("tab-visitor"), operator: $("tab-operator"), status: $("tab-status") };
+    Object.keys(tabs).forEach(function (k) { var on = k === S.view; tabs[k].setAttribute("aria-selected", on ? "true" : "false"); tabs[k].tabIndex = on ? 0 : -1; });
+    $("app-view").hidden = status; $("status-view").hidden = !status; $("basis-fold").hidden = status;
+    $("app-view").setAttribute("aria-labelledby", visitor ? "tab-visitor" : "tab-operator");
     if (status) { renderStatus(); syncHash(); return; }
-    Array.prototype.forEach.call($("days").querySelectorAll("button"), function (b, i) { b.setAttribute("aria-pressed", i === S.g ? "true" : "false"); });
+    var dayBtns = Array.prototype.slice.call($("days").querySelectorAll("button")).concat(Array.prototype.slice.call($("days-hol").querySelectorAll("button")));
+    dayBtns.forEach(function (b, i) { b.setAttribute("aria-pressed", i === S.g ? "true" : "false"); });
     Array.prototype.forEach.call($("metric").querySelectorAll("button"), function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-m") === S.metric ? "true" : "false"); });
-    $("metric").hidden = visitor ? false : false;
     $("tier-wrap").hidden = !(!visitor && tl);
-    $("lede").innerHTML = visitor
-      ? '언제 가야 덜 붐비고, 언제 나가야 덜 막힐까요?<small>요일을 고르면 시간대별 주차 중인 차량과 출차를 주차 칸으로 보여 줍니다.</small>'
-      : '공연 규모에 따라 저녁 주차와 퇴장이 얼마나 달라질까요?<small>요일 유형과 공연 규모를 고르면 같은 유형의 날들의 평균을 비교합니다.</small>';
     if (!visitor && tl) {
-      var ul = $("tiers"); ul.innerHTML = "";
+      var box = $("tiers"); box.innerHTML = "";
       tl.forEach(function (t, i) {
-        var li = document.createElement("li"), b = document.createElement("button");
+        var b = document.createElement("button");
         b.type = "button"; b.disabled = t.n_days === 0;
-        b.innerHTML = t.label.replace("(", "<small>(").replace(")", ")</small>") + "<small>" + t.n_days + "일 관측" + (t.n_days > 0 && P.isSmall(t.n_days) ? " · 참고용" : "") + "</small>";
+        b.innerHTML = sh(t.label) + (t.label.indexOf("(") > 0 ? "<small>" + t.label.slice(t.label.indexOf("(")) + "</small>" : "") + "<small>" + t.n_days + "일 관측" + (t.n_days > 0 && P.isSmall(t.n_days) ? " · 참고용" : "") + "</small>";
         b.setAttribute("aria-pressed", i === S.tier ? "true" : "false");
         b.addEventListener("click", function () {
           S.tier = i;
           if (t.aud_median > 0) S.sim = t.aud_median / 1000; // 프리셋: 그 규모의 관람객 중앙값으로 슬라이더 이동(범위 밖이면 renderSim 에서 보정)
           render();
         });
-        li.appendChild(b); ul.appendChild(li);
+        box.appendChild(b);
       });
     }
-    var sr = series(), top = topOf();
+    var sr = series();
+    headline(sr, g);
     var mname = S.metric === "cars" ? "주차 중인 차량" : "시간당 출차";
-    $("lot-title").textContent = groupName(g) + " · " + mname + " (5시~23시)";
-    $("ghost-name").textContent = sr.ghostName;
-    var nObs = sr.cur ? sr.cur.n_days : g.n_days, badge = $("lot-badge"); // 소표본(5일 미만)이면 '참고용' 배지
-    badge.hidden = !P.isSmall(nObs);
-    badge.textContent = "관측 " + nObs + "일, 참고용";
-    var bays = $("bays").children;
-    Array.prototype.forEach.call(bays, function (bay, i) {
-      var h = H0 + i, v = sr.main[h], gv = sr.ghost[h], lv = v == null ? "calm" : level(v);
-      var car = bay.querySelector(".car"), rng = bay.querySelector(".range");
-      car.className = "car lvl-" + lv; rng.className = "range lvl-" + lv;
-      car.style.height = ((v || 0) / top * 100) + "%"; rng.style.height = ((gv || 0) / top * 100) + "%";
-      bay.setAttribute("aria-pressed", h === S.hour ? "true" : "false");
-      bay.setAttribute("aria-label", h + "시, " + sr.mainName + " " + fmt(v) + "대, " + LV[lv]);
-    });
-    if (S.hour == null) { S.hour = peak(sr.main); }
-    Array.prototype.forEach.call(bays, function (bay, i) { bay.setAttribute("aria-pressed", H0 + i === S.hour ? "true" : "false"); });
-    readout(S.hour); summary(sr, g);
-    renderPlanner();
+    $("chart-title").textContent = groupName(g) + " · " + mname + " (5시~23시)";
+    legend(sr);
+    if (visitor) { $("plot").removeAttribute("tabindex"); $("plot").removeAttribute("role"); $("plot").setAttribute("aria-label", "시간대별 차트"); }
+    else { $("plot").setAttribute("tabindex", "0"); $("plot").setAttribute("role", "slider"); $("plot").setAttribute("aria-label", "시각 살펴보기 (좌우 화살표로 이동)"); $("plot").setAttribute("aria-valuemin", H0); $("plot").setAttribute("aria-valuemax", H1); }
+    renderPlanner(); // 방문객: 슬라이더·결과·차트를 함께 그린다
+    if (!visitor) drawChart();
     renderSim();
+    notes(sr, g);
     syncHash();
   }
+
+  /* ---------- 결론 문장 ---------- */
+  function range(a, b) { return a + "~" + b + "시"; }
+  function tierPhrase(label) { return label.indexOf("공연 없음") === 0 ? "공연이 없던 날" : sh(label) + " 공연일"; }
+  function headline(sr, g) {
+    var d = S.data, nm = groupName(g), html = "", meta = "";
+    var small = function (n) { return P.isSmall(n) ? '<span class="badge">관측 ' + n + '일, 참고용</span>' : ""; };
+    if (S.view === "visitor") {
+      var H = P.visitorHeadline(g, thrBoth());
+      if (H.calm) html = nm + eunNeun(nm) + " 9~18시 중 <strong>" + range(H.calm.from, H.calm.to) + "</strong>가 가장 한산하고, ";
+      else html = nm + eunNeun(nm) + " ";
+      if (H.busy) html += "<strong>" + range(H.busy.from, H.busy.to) + "</strong>가 가장 붐벼요.";
+      else html = html.replace(/가 가장 한산하고, $/, "가 가장 한산해요. ") + "평소엔 붐빔 수준에 이르는 시간이 없어요.";
+      if (H.relief && H.relief.kind === "after") html += " 나갈 땐 <strong>" + H.relief.from + "시</strong> 이후가 편해요.";
+      else if (H.relief) html += " 나갈 땐 <strong>" + range(H.relief.from, H.relief.to) + "</strong>가 비교적 한산해요.";
+      meta = g.n_days < 20 ? nm + eunNeun(nm) + " 관측한 날이 " + g.n_days + "일뿐이라 거칠게 읽어 주세요." : "같은 유형의 " + g.n_days + "일을 합친 분포입니다.";
+      meta += small(g.n_days);
+    } else if (sr.cur) {
+      var eveC = mean(sr.cur.cars_mean, 17, 21), op = P.peakHour(sr.cur.out_mean), cmp = "";
+      if (sr.base) { var dE = Math.round(eveC - mean(sr.baseT.cars_mean, 17, 21)); cmp = "로, " + tierPhrase(sr.baseT.label) + "보다 " + Math.abs(dE).toLocaleString("ko-KR") + "대 " + (dE >= 0 ? "많았어요" : "적었어요"); }
+      else cmp = " (비교 기준 규모)";
+      html = nm + " " + tierPhrase(sr.cur.label) + " " + sr.cur.n_days + "일의 저녁(17~21시) 평균 주차 차량은 <strong>" + fmt(eveC) + "대</strong>" + cmp + (sr.base ? "." : "예요.") +
+        " 퇴장은 <strong>" + op + "시</strong>에 시간당 평균 " + fmt(sr.cur.out_mean[op]) + "대로 가장 몰렸어요.";
+      meta = "같은 요일 유형 날들의 평균 비교 · 관측 " + sr.cur.n_days + "일" + small(sr.cur.n_days) + " · 공연 관람객 일 최대 중앙값 " + (sr.cur.aud_median ? sr.cur.aud_median.toLocaleString("ko-KR") + "명" : "–");
+    } else {
+      var a = sr.main, eve = mean(a, 17, 21), pk = P.peakHour(a);
+      html = nm + eunNeun(nm) + (S.metric === "cars" ? " 저녁(17~21시) 평균 주차 차량이 <strong>" + fmt(eve) + "대</strong>, 가장 많은 시각은 <strong>" + pk + "시</strong>(평균 " + fmt(a[pk]) + "대)예요."
+        : " 저녁(17~21시) 평균 시간당 출차가 <strong>" + fmt(eve) + "대</strong>, 가장 몰린 시각은 <strong>" + pk + "시</strong>(평균 " + fmt(a[pk]) + "대)예요.");
+      meta = "관측 " + g.n_days + "일 · 이 유형은 공연 규모를 나눌 만큼 관측일이 없습니다" + small(g.n_days);
+    }
+    $("headline").innerHTML = html; $("meta").innerHTML = meta;
+  }
+  function legend(sr) {
+    var h = "";
+    if (sr.tier) h = '<span><i class="lg-line"></i>' + sh(sr.cur.label) + ' 평균</span>' + (sr.base ? '<span><i class="lg-dash"></i>기준: ' + sh(sr.baseT.label) + '</span>' : "");
+    else h = '<span><i class="lg-line"></i>' + sr.mainName + '</span><span><i class="lg-band"></i>대부분의 날</span>';
+    h += '<span><i class="lg-zone"></i>바탕이 짙을수록 붐빔</span><span><i class="lg-dash" style="border-top-color:#57554f"></i>점선: 위는 상위 3분의 1 수준(붐빔), 아래는 하위 3분의 1 수준(한산)</span>';
+    $("legend").innerHTML = h;
+  }
+  function notes(sr, g) {
+    var visitor = S.view === "visitor", u = S.data.meta.uplift, one = $("oneline"), op = $("op-note");
+    one.textContent = visitor
+      ? "앞날을 맞히는 값이 아니라 같은 유형의 과거 날 분포이며, 한산·보통·붐빔은 이 자료 안의 상대 구분입니다."
+      : "같은 유형 날들의 평균 비교이며, 한산·보통·붐빔은 이 자료 안의 상대 구분입니다.";
+    $("to-operator").hidden = !(visitor && g.n_days >= 20);
+    op.hidden = visitor;
+    if (visitor) return;
+    op.textContent = sr.cur
+      ? "공연 규모별 같은 요일 유형 날들의 평균 비교입니다. 요일·월·기온 편차를 통제하면 일 관람객 1천 명당 18~23시 출차도 약 " + u.eve_out_per_1k + "대(95% 구간 " + u.eve_out_ci[0] + "~" + u.eve_out_ci[1] + ", " + u.n_days + "일) 많았습니다. 조건부 비교이며 공연이 원인이라는 뜻은 아닙니다. 관람객 수와 저녁 주차 차량의 관계는 위쪽 시뮬레이터에서 볼 수 있어요."
+      : "공연 규모별 비교는 금요일과 주말(토·일)에서만 볼 수 있습니다. 평일(월~목)은 공연이 있었던 날이 거의 없습니다.";
+  }
+
+  /* ---------- 차트(인라인 SVG) ---------- */
+  var geo = null; // 마지막으로 그린 좌표계(포인터 → 시각 변환, 슬라이더 정렬에 쓴다)
+  function esc(t) { return String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
+  function textW(str, fs) { var w = 0, i; for (i = 0; i < str.length; i++) w += str.charCodeAt(i) > 127 ? fs : fs * 0.58; return w; }
+
+  function drawChart() {
+    var plot = $("plot"), svg = $("plot-svg"), W = plot.clientWidth;
+    if (!S.data || S.view === "status" || W < 160) return;
+    var mobile = W < 520, Ht = mobile ? 300 : 360, ml = mobile ? 46 : 52, mr = mobile ? 38 : 132, mt = mobile ? 34 : 38, mb = 30;
+    var pw = W - ml - mr, ph = Ht - mt - mb, slot = pw / (H1 - H0);
+    var sr = series(), th = thr(), sc = P.niceScale(topOf(), 4), yMax = sc.top, visitor = S.view === "visitor";
+    var X = function (h) { return ml + (h - H0) / (H1 - H0) * pw; };
+    var Y = function (v) { return mt + ph * (1 - v / yMax); };
+    var s = "", i, h, v;
+    // 바탕: 3분위 경계 위로 갈수록 짙게
+    var y1 = Math.max(mt, Y(th[1])), y0 = Math.max(mt, Y(th[0]));
+    s += '<rect x="' + ml + '" y="' + mt + '" width="' + pw + '" height="' + (y1 - mt).toFixed(1) + '" fill="#0c5e5b" fill-opacity=".14"/>';
+    s += '<rect x="' + ml + '" y="' + y1.toFixed(1) + '" width="' + pw + '" height="' + (y0 - y1).toFixed(1) + '" fill="#0c5e5b" fill-opacity=".06"/>';
+    // 가로 눈금
+    sc.ticks.forEach(function (tv) {
+      var y = Y(tv).toFixed(1);
+      s += '<line x1="' + ml + '" x2="' + (ml + pw) + '" y1="' + y + '" y2="' + y + '" stroke="' + (tv === 0 ? "#8a8575" : "#cfc9b9") + '" stroke-width="1"/>';
+      s += '<text class="ax" x="' + (ml - 8) + '" y="' + y + '" text-anchor="end" dominant-baseline="central">' + tv.toLocaleString("ko-KR") + '</text>';
+    });
+    // 세로 눈금(모바일은 3시간, 넓은 화면은 2시간 간격: 라벨 사이 44px 이상)
+    var step = slot * 2 >= 44 ? 2 : 3;
+    for (h = H0; h <= H1; h += step) {
+      s += '<line x1="' + X(h).toFixed(1) + '" x2="' + X(h).toFixed(1) + '" y1="' + (mt + ph) + '" y2="' + (mt + ph + 5) + '" stroke="#8a8575"/>';
+      s += '<text class="ax" x="' + X(h).toFixed(1) + '" y="' + (mt + ph + 20) + '" text-anchor="middle">' + h + '시</text>';
+    }
+    // 가장 한산한 2시간(방문객)
+    var calm = null;
+    if (visitor) {
+      var w = S.metric === "cars" ? P.minWindow(sr.main, 9, 17) : P.minWindow(sr.main, 14, 22);
+      if (w) {
+        calm = { from: w.h, to: w.h + 2 };
+        var cx = X(w.h), cw = X(w.h + 2) - X(w.h), lab = (S.metric === "cars" ? (mobile ? "가장 한산 " : "9~18시 중 가장 한산 ") : (mobile ? "출차 한산 " : "출차가 가장 한산 ")) + calm.from + "~" + calm.to + "시";
+        s += '<rect x="' + cx.toFixed(1) + '" y="' + mt + '" width="' + cw.toFixed(1) + '" height="' + ph + '" fill="#d6eae7" fill-opacity=".9"/>';
+        var lw = textW(lab, 13), lx = Math.min(Math.max(cx + cw / 2 - lw / 2, ml), ml + pw - lw);
+        s += '<text class="zl" x="' + lx.toFixed(1) + '" y="' + (mt - 10) + '" style="font-weight:700;fill:#0c5e5b">' + esc(lab) + '</text>';
+      }
+    }
+    // 대부분의 날 띠
+    if (sr.band) {
+      var up = "", dn = "";
+      for (h = H0; h <= H1; h++) { if (sr.band.hi[h] == null || sr.band.lo[h] == null) continue; up += (up ? "L" : "M") + X(h).toFixed(1) + " " + Y(sr.band.hi[h]).toFixed(1); }
+      for (h = H1; h >= H0; h--) { if (sr.band.hi[h] == null || sr.band.lo[h] == null) continue; dn += "L" + X(h).toFixed(1) + " " + Y(sr.band.lo[h]).toFixed(1); }
+      s += '<path d="' + up + dn + 'Z" fill="#0c5e5b" fill-opacity=".2" stroke="none"/>';
+      var edge = function (arr) { var p = ""; for (h = H0; h <= H1; h++) { if (arr[h] == null) continue; p += (p ? "L" : "M") + X(h).toFixed(1) + " " + Y(arr[h]).toFixed(1); } return p; };
+      s += '<path d="' + edge(sr.band.hi) + '" fill="none" stroke="#0c5e5b" stroke-opacity=".75" stroke-width="1"/><path d="' + edge(sr.band.lo) + '" fill="none" stroke="#0c5e5b" stroke-opacity=".75" stroke-width="1"/>';
+    }
+    // 3분위 경계 점선과 오른쪽 여백의 라벨(데이터와 겹치지 않게 그림 밖에 둔다)
+    var zl = function (val, l1, l2) {
+      var y = Y(val); if (y < mt || y > mt + ph) return "";
+      var t = '<line x1="' + ml + '" x2="' + (ml + pw + 6) + '" y1="' + y.toFixed(1) + '" y2="' + y.toFixed(1) + '" stroke="#57554f" stroke-width="1.2" stroke-dasharray="6 4"/>';
+      t += '<text class="ax" x="' + (ml + pw + 10) + '" y="' + (l2 ? y - 3 : y) + '" ' + (l2 ? "" : 'dominant-baseline="central" ') + 'style="font-weight:700;fill:#1c1c1a">' + esc(l1) + '</text>';
+      if (l2) t += '<text class="ax" x="' + (ml + pw + 10) + '" y="' + (y + 13) + '">' + esc(l2) + '</text>';
+      return t;
+    };
+    s += mobile ? zl(th[1], "붐빔") + zl(th[0], "한산") : zl(th[1], "붐빔: 이 선 위", "상위 3분의 1 수준") + zl(th[0], "한산: 이 선 아래", "하위 3분의 1 수준");
+    // 기준 점선(운영자)
+    var path = function (arr) { var p = ""; for (h = H0; h <= H1; h++) { if (arr[h] == null) continue; p += (p ? "L" : "M") + X(h).toFixed(1) + " " + Y(arr[h]).toFixed(1); } return p; };
+    if (sr.base) s += '<path d="' + path(sr.base) + '" fill="none" stroke="#57554f" stroke-width="2.2" stroke-dasharray="7 5" stroke-linejoin="round"/>';
+    s += '<path d="' + path(sr.main) + '" fill="none" stroke="#0c5e5b" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>';
+    // 최대 시각 주석
+    var pk = P.peakHour(sr.main);
+    if (pk != null) {
+      var pt = "" + pk + "시 최대 " + sr.mainName + " " + fmt(sr.main[pk]) + "대", pwid = textW(pt, 13), px = Math.min(Math.max(X(pk) - pwid / 2, ml + 2), ml + pw - pwid - 2), py = Y(sr.main[pk]) - 14;
+      if (py < mt + 12) py = Y(sr.main[pk]) + 26;
+      s += '<circle cx="' + X(pk).toFixed(1) + '" cy="' + Y(sr.main[pk]).toFixed(1) + '" r="5" fill="#0c5e5b" stroke="#fbf8f1" stroke-width="2"/>';
+      s += '<text class="an" x="' + px.toFixed(1) + '" y="' + py.toFixed(1) + '">' + esc(pt) + '</text>';
+    }
+    // 선택·호버 표시
+    var mark = function (hh, strong) {
+      var vv = sr.main[hh]; if (vv == null) return "";
+      return '<line x1="' + X(hh).toFixed(1) + '" x2="' + X(hh).toFixed(1) + '" y1="' + mt + '" y2="' + (mt + ph) + '" stroke="#1c1c1a" stroke-width="' + (strong ? 2 : 1) + '" stroke-opacity="' + (strong ? 1 : .55) + '"/>' +
+        '<circle cx="' + X(hh).toFixed(1) + '" cy="' + Y(vv).toFixed(1) + '" r="' + (strong ? 6 : 4.5) + '" fill="#1c1c1a" stroke="#fbf8f1" stroke-width="2"/>';
+    };
+    var tipHour = S.hover != null ? S.hover : (visitor ? null : S.hour);
+    if (visitor) {
+      // 머무는 시간 띠와 도착·출발 핸들
+      s += '<rect x="' + X(S.arrive).toFixed(1) + '" y="' + (mt + ph - 4) + '" width="' + (X(S.depart) - X(S.arrive)).toFixed(1) + '" height="6" rx="3" fill="#1c1c1a"/>';
+      if (S.hover != null && S.hover !== S.arrive && S.hover !== S.depart) s += mark(S.hover, false);
+      var flag = function (hh, txt, preferLeft, row) {
+        var fw = textW(txt, 13) + 14, fx = preferLeft ? X(hh) - fw : X(hh), fy = mt + 6 + row * 28;
+        if (fx < ml) fx = X(hh); if (fx + fw > ml + pw) fx = X(hh) - fw;
+        return '<rect x="' + fx.toFixed(1) + '" y="' + fy + '" width="' + fw.toFixed(1) + '" height="24" rx="6" fill="#1c1c1a"/><text class="flag" x="' + (fx + 7).toFixed(1) + '" y="' + (fy + 16.5) + '">' + esc(txt) + '</text>';
+      };
+      s += mark(S.arrive, true) + mark(S.depart, true);
+      s += flag(S.arrive, "도착 " + S.arrive + "시", true, 0) + flag(S.depart, "출발 " + S.depart + "시", false, S.depart === S.arrive ? 1 : 0);
+    } else {
+      if (S.hover != null && S.hover !== S.hour) s += mark(S.hover, false);
+      if (S.hour != null) s += mark(S.hour, true);
+    }
+    svg.setAttribute("viewBox", "0 0 " + W + " " + Ht); svg.setAttribute("width", W); svg.setAttribute("height", Ht);
+    svg.innerHTML = s;
+    geo = { ml: ml, pw: pw, W: W };
+    // 슬라이더를 차트의 가로축에 맞춘다
+    var pl = $("planner"); pl.style.setProperty("--ml", ml + "px"); pl.style.setProperty("--pw", pw + "px");
+    // 툴팁
+    var tip = $("tip");
+    if (tipHour != null && sr.main[tipHour] != null) {
+      var tv = sr.main[tipHour], tl2 = tierList(), t = "<b>" + tipHour + "시</b> · " + sr.mainName + " <b>" + fmt(tv) + "대</b> · " + LV[level(tv)];
+      if (sr.band) t += "<br>" + (visitor ? "대부분의 날 " : "같은 유형 ") + fmt(sr.band.lo[tipHour]) + "~" + fmt(sr.band.hi[tipHour]) + "대";
+      else if (sr.base) { var df = Math.round(tv - sr.base[tipHour]); t += "<br>기준(" + sh(sr.baseT.label) + ") 대비 " + (df >= 0 ? "+" : "−") + Math.abs(df).toLocaleString("ko-KR") + "대"; }
+      tip.innerHTML = t; tip.hidden = false;
+      var tw = tip.offsetWidth, thh = tip.offsetHeight, tx = Math.min(Math.max(X(tipHour) - tw / 2, 0), W - tw), ty = Y(tv) - thh - 12;
+      if (ty < 0) ty = Y(tv) + 14;
+      tip.style.left = tx + "px"; tip.style.top = ty + "px";
+    } else tip.hidden = true;
+    // 접근성: 값 표와 슬라이더 값
+    var rows = "", lvl;
+    for (h = H0; h <= H1; h++) { if (sr.main[h] == null) continue; lvl = LV[level(sr.main[h])]; rows += "<tr><th scope=\"row\">" + h + "시</th><td>" + fmt(sr.main[h]) + "대</td><td>" + lvl + "</td>" + (sr.band ? "<td>" + fmt(sr.band.lo[h]) + "~" + fmt(sr.band.hi[h]) + "대</td>" : "") + "</tr>"; }
+    $("sr-table").innerHTML = "<caption>" + esc($("chart-title").textContent) + " 시간대별 값</caption><thead><tr><th scope=\"col\">시각</th><th scope=\"col\">" + sr.mainName + "</th><th scope=\"col\">수준</th>" + (sr.band ? "<th scope=\"col\">대부분의 날</th>" : "") + "</tr></thead><tbody>" + rows + "</tbody>";
+    if (!visitor) {
+      var hh2 = S.hour != null ? S.hour : pk;
+      plot.setAttribute("aria-valuenow", hh2); plot.setAttribute("aria-valuetext", hh2 + "시, " + sr.mainName + " " + fmt(sr.main[hh2]) + "대, " + LV[level(sr.main[hh2])]);
+    }
+  }
+
+  // 포인터·키보드
+  var drag = null;
+  function hourAt(e) {
+    var r = $("plot").getBoundingClientRect(), x = e.clientX - r.left - geo.ml;
+    return Math.min(H1, Math.max(H0, Math.round(H0 + x / geo.pw * (H1 - H0))));
+  }
+  function setHandle(which, h) {
+    if (which === "arrive") { S.arrive = h; if (S.depart < S.arrive) S.depart = S.arrive; }
+    else S.depart = Math.max(h, S.arrive);
+  }
+  function nearest(h) { // 가까운 핸들. 같은 거리면 도착 시각 이하는 도착, 그보다 늦으면 출발
+    var da = Math.abs(h - S.arrive), dd = Math.abs(h - S.depart);
+    if (da !== dd) return da < dd ? "arrive" : "depart";
+    return h <= S.arrive ? "arrive" : "depart";
+  }
+  function initPlot() {
+    var plot = $("plot");
+    plot.addEventListener("pointerdown", function (e) {
+      if (!geo || (e.pointerType === "mouse" && e.button !== 0)) return;
+      var h = hourAt(e);
+      if (S.view === "visitor") { drag = nearest(h); setHandle(drag, h); } else { S.hour = h; }
+      S.hover = h;
+      try { plot.setPointerCapture(e.pointerId); } catch (x) { /* 무시 */ }
+      afterPointer();
+    });
+    plot.addEventListener("pointermove", function (e) {
+      if (!geo) return;
+      var h = hourAt(e);
+      if (drag) { setHandle(drag, h); S.hover = h; afterPointer(); return; }
+      if (e.pointerType === "mouse") { if (S.hover !== h) { S.hover = h; drawChart(); } }
+      else if (e.buttons && S.view === "operator" && S.hour !== h) { S.hour = h; S.hover = h; drawChart(); }
+    });
+    function end(e) { drag = null; if (e.pointerType !== "mouse" && S.hover != null) { S.hover = null; drawChart(); } }
+    plot.addEventListener("pointerup", end);
+    plot.addEventListener("pointercancel", end);
+    plot.addEventListener("pointerleave", function (e) { if (e.pointerType === "mouse" && !drag && S.hover != null) { S.hover = null; drawChart(); } });
+    plot.addEventListener("keydown", function (e) {
+      if (S.view === "visitor") return;
+      var cur = S.hour != null ? S.hour : P.peakHour(series().main), n = null;
+      if (e.key === "ArrowRight" || e.key === "ArrowUp") n = cur + 1; else if (e.key === "ArrowLeft" || e.key === "ArrowDown") n = cur - 1; else if (e.key === "Home") n = H0; else if (e.key === "End") n = H1;
+      if (n == null) return;
+      e.preventDefault(); S.hour = Math.min(H1, Math.max(H0, n)); S.hover = null; drawChart();
+    });
+  }
+  function afterPointer() { if (S.view === "visitor") renderPlan(); else drawChart(); }
 
   // 데이터 현황 탭: 전부 JSON(coverage, validation_table, meta)에서 만든다.
   function renderStatus() {
@@ -649,7 +936,7 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
         (use ? "사용" : "제외" + (i === lastMonth ? " (" + lastMonth + "/" + lastDay + "까지)" : "")) + '</td></tr>';
     }
     $("st-months").innerHTML = rows;
-    $("st-m-hint").textContent = "입출차 원천 기록(중복 제거 후)의 월별 입차 건수입니다. 파란 막대는 분석에 쓴 달, 회색은 기록이 거의 없어 뺀 달이에요. 분석한 날은 모두 " + m.valid_days + "일입니다(매월 말일은 기록이 비어 제외).";
+    $("st-m-hint").textContent = "입출차 원천 기록(중복 제거 후)의 월별 입차 건수입니다. 진한 청록 막대는 분석에 쓴 달, 회색은 기록이 거의 없어 뺀 달이에요. 분석한 날은 모두 " + m.valid_days + "일입니다(매월 말일은 기록이 비어 제외).";
     var pct = function (x) { return (x * 100).toFixed(1); };
     $("st-dup").innerHTML =
       "<li>원천 " + c.raw_rows.toLocaleString("ko-KR") + "행 → 중복 제거 후 <b>" + c.unique_rows.toLocaleString("ko-KR") + "건</b> (원천 중복 <b>" + pct(c.dup_rate) + "%</b>, 같은 ID·내용의 행)</li>" +
@@ -676,11 +963,6 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
     ].map(function (t) { return "<li>" + t + "</li>"; }).join("");
   }
 
-  function eunNeun(word) { // 받침이 있으면 '은', 없으면 '는'
-    var c = word.charCodeAt(word.length - 1) - 0xAC00;
-    return c >= 0 && c <= 11171 && c % 28 !== 0 ? "은" : "는";
-  }
-  function signed(v) { var r = Math.round(v); return (r >= 0 ? "+" : "−") + Math.abs(r).toLocaleString("ko-KR"); }
   function renderSim() {
     var box = $("sim"), operator = S.view === "operator";
     box.hidden = !operator;
@@ -706,8 +988,8 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
     var r = P.predictEvening(mdl, S.sim), u = d.meta.uplift, grp = g.key === "fri" ? "금요일" : "주말(토·일)";
     if (!r.ok) { out.innerHTML = ""; why.textContent = "이 값은 관측 범위 밖이라 계산하지 않아요."; return; }
     out.innerHTML =
-      '<p class="big">저녁(17~21시) 평균 주차 차량 약 <b>' + fmt(r.yhat) + '대</b> <span class="sub">(80% 예측구간 ' + fmt(r.lo) + '~' + fmt(r.hi) + '대)</span></p>' +
-      '<p class="sub">' + grp + ' 공연일 ' + mdl.n + '일(관람객 ' + mdl.x_min.toFixed(1) + '~' + mdl.x_max.toFixed(1) + '천 명)의 단순 회귀입니다. 관측 범위 안에서만 계산해요.</p>' +
+      '<div class="result"><p class="big">저녁(17~21시) 평균 주차 차량 약 <b>' + fmt(r.yhat) + '대</b> <span class="sub" style="display:inline">(80% 예측구간 ' + fmt(r.lo) + '~' + fmt(r.hi) + '대)</span></p>' +
+      '<p class="sub">' + grp + ' 공연일 ' + mdl.n + '일(관람객 ' + mdl.x_min.toFixed(1) + '~' + mdl.x_max.toFixed(1) + '천 명)의 단순 회귀입니다. 관측 범위 안에서만 계산해요.</p></div>' +
       '<ul><li>관람객 +1천 명당 저녁 평균 주차 차량, <b>단순 회귀</b> 약 <b>' + signed(mdl.slope) + '대</b> (95% 구간 ' + fmt(mdl.slope_ci95[0]) + '~' + fmt(mdl.slope_ci95[1]) + ', ' + grp + ' ' + mdl.n + '일, 다른 조건 통제 없음)</li>' +
       '<li>요일·월·기온 편차를 <b>통제한 추정</b> 약 <b>' + signed(u.eve_cars_per_1k) + '대</b> (95% 구간 ' + u.eve_cars_ci[0] + '~' + u.eve_cars_ci[1] + ', 금요일·주말 ' + u.n_days + '일)</li></ul>' +
       '<p class="sub">두 값이 조금 다른 이유: 앞의 값은 다른 조건을 통제하지 않은 단순 비교이고, 뒤의 값은 요일·월·기온 편차를 통제했으며 분석한 날도 조금 달라요(공휴일과 겹친 주말 포함).</p>' +
@@ -715,84 +997,37 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
     why.textContent = "";
   }
 
-  function lvTag(lv) { return '<span class="lvtag ' + lv + '">' + LV[lv] + '</span>'; }
+  // 방문 시각 플래너: 결과 문장(차트·슬라이더와 같은 상태를 쓴다)
+  function renderPlan() { // 도착·출발 변경 시: 슬라이더, 결과, 차트, 해시
+    syncSliders(); planResult(); drawChart(); syncHash();
+  }
+  function syncSliders() {
+    $("pl-arrive").value = S.arrive; $("pl-depart").value = S.depart;
+    $("pl-a-out").textContent = S.arrive + "시"; $("pl-d-out").textContent = S.depart + "시";
+    $("pl-arrive").setAttribute("aria-valuetext", S.arrive + "시"); $("pl-depart").setAttribute("aria-valuetext", S.depart + "시");
+  }
   function renderPlanner() {
     var box = $("planner"), visitor = S.view === "visitor";
     box.hidden = !visitor;
     if (!visitor) return;
+    syncSliders(); planResult(); drawChart(); // 슬라이더가 보인 뒤 차트 좌표계에 맞춘다
+  }
+  function planResult() {
     var g = S.data.groups[S.g], m = S.data.meta, out = $("pl-out");
-    $("pl-arrive").value = S.arrive; $("pl-depart").value = S.depart;
-    Array.prototype.forEach.call($("pl-depart").options, function (o) { o.disabled = parseInt(o.value, 10) < S.arrive; });
-    var thr = { cars: m.cars_thresholds, out: m.out_thresholds };
-    var r = P.planVisit(g, thr, S.arrive, S.depart, 2);
+    var thr2 = { cars: m.cars_thresholds, out: m.out_thresholds };
+    var r = P.planVisit(g, thr2, S.arrive, S.depart, 2);
     if (!r.ok) { out.innerHTML = "<p>" + (r.reason === "order" ? "출발 시각은 도착 시각과 같거나 늦어야 해요." : "이 시각은 자료가 없어요.") + "</p>"; return; }
-    var h = '<p><b>' + S.arrive + '시 도착</b> · 주차 중인 차량 중앙값 <b>' + fmt(r.arrive.value) + '대</b> ' + lvTag(r.arrive.level) +
-      '<br><span class="sub">' + groupName(g) + ' ' + g.n_days + '일 중 10~90% 범위 ' + fmt(r.arrive.p10) + '~' + fmt(r.arrive.p90) + '대</span></p>';
+    var h = '<p><b>' + S.arrive + '시 도착</b> · 주차 중인 차량 평소 <b>' + fmt(r.arrive.value) + '대</b> ' + lvTag(r.arrive.level) +
+      '<span class="sub">' + groupName(g) + ' ' + g.n_days + '일 중 대부분의 날 ' + fmt(r.arrive.p10) + '~' + fmt(r.arrive.p90) + '대</span></p>';
     h += r.altArrive
-      ? '<p class="alt"><b>' + r.altArrive.hour + '시</b>에 도착하면 중앙값이 약 <b>' + fmt(r.altArrive.diff) + '대</b> 적어요 (' + fmt(r.altArrive.value) + '대 ' + lvTag(P.levelOf(r.altArrive.value, thr.cars)) + ')</p>'
+      ? '<p class="alt"><b>' + r.altArrive.hour + '시</b>에 도착하면 평소 약 <b>' + fmt(r.altArrive.diff) + '대</b> 적어요 (' + fmt(r.altArrive.value) + '대 ' + lvTag(P.levelOf(r.altArrive.value, thr2.cars)) + ')</p>'
       : '<p class="alt">도착 시각 앞뒤 ' + r.win + '시간 안에서는 이 시각이 이미 가장 한산해요.</p>';
-    h += '<p><b>' + S.depart + '시 출발</b> · 시간당 출차 중앙값 <b>' + fmt(r.depart.value) + '대</b> ' + lvTag(r.depart.level) +
-      '<br><span class="sub">' + (r.depart.level === "calm" ? "" : "출차가 몰리는 시각이라 출구가 붐빌 수 있어요. ") + '10~90% 범위 ' + fmt(r.depart.p10) + '~' + fmt(r.depart.p90) + '대</span></p>';
+    h += '<p><b>' + S.depart + '시 출발</b> · 시간당 출차 평소 <b>' + fmt(r.depart.value) + '대</b> ' + lvTag(r.depart.level) +
+      '<span class="sub">' + (r.depart.level === "calm" ? "" : "출차가 몰리는 시각이라 출구가 붐빌 수 있어요. ") + '대부분의 날 ' + fmt(r.depart.p10) + '~' + fmt(r.depart.p90) + '대</span></p>';
     h += r.altDepart
-      ? '<p class="alt"><b>' + r.altDepart.hour + '시</b>에 나가면 시간당 출차 중앙값이 약 <b>' + fmt(r.altDepart.diff) + '대</b> 적어요 (' + fmt(r.altDepart.value) + '대 ' + lvTag(P.levelOf(r.altDepart.value, thr.out)) + ')</p>'
+      ? '<p class="alt"><b>' + r.altDepart.hour + '시</b>에 나가면 시간당 출차 평소 약 <b>' + fmt(r.altDepart.diff) + '대</b> 적어요 (' + fmt(r.altDepart.value) + '대 ' + lvTag(P.levelOf(r.altDepart.value, thr2.out)) + ')</p>'
       : '<p class="alt">출발 시각 앞뒤 ' + r.win + '시간 안에서는 이 시각이 이미 출차가 가장 한산해요.</p>';
     out.innerHTML = h;
-  }
-
-  function peak(a) { var pk = H0, i; for (i = H0; i <= H1; i++) if ((a[i] || 0) > (a[pk] || 0)) pk = i; return pk; }
-  function minWindow(a, from, to) { // [from, to] 안에서 연속 2시간 합이 가장 작은 시작 시각
-    var best = from, bs = Infinity, i; for (i = from; i < to; i++) { var s = a[i] + a[i + 1]; if (s < bs) { bs = s; best = i; } } return { h: best, s: bs };
-  }
-  function mean(a, from, to) { var s = 0, i; for (i = from; i <= to; i++) s += a[i]; return s / (to - from + 1); }
-
-  function readout(hour) {
-    var sr = series(), g = S.data.groups[S.g], el = $("readout");
-    if (hour == null) { el.textContent = ""; return; }
-    var v = sr.main[hour], lv = level(v), unit = "대";
-    var html = '<b>' + hour + '시</b> · ' + sr.mainName + ' <b>' + fmt(v) + unit + '</b> · ' + LV[lv];
-    if (S.view === "visitor") {
-      html += '<div class="sub">같은 유형 ' + g.n_days + '일 중 10~90% 범위 ' + fmt(g[S.metric].p10[hour]) + '~' + fmt(g[S.metric].p90[hour]) + unit + '</div>';
-    } else if (sr.cur) {
-      var diff = sr.cur.label === sr.base.label ? null : Math.round(v - sr.base[S.metric === "cars" ? "cars_mean" : "out_mean"][hour]);
-      html += '<div class="sub">' + sh(sr.cur.label) + ' 공연 ' + sr.cur.n_days + '일 평균' + (diff == null ? '' : ' · 기준(' + sh(sr.base.label) + ') 대비 ' + (diff >= 0 ? '+' : '') + diff.toLocaleString("ko-KR") + unit) + '</div>';
-    } else {
-      html += '<div class="sub">같은 유형 ' + g.n_days + '일 평균 · 공연 규모를 나눌 표본이 없는 유형입니다</div>';
-    }
-    el.innerHTML = html;
-  }
-
-  function panel(cls, k, v, n) { return '<div class="panel ' + cls + '"><p class="k">' + k + '</p><p class="v">' + v + '</p><p class="n">' + n + '</p></div>'; }
-
-  function summary(sr, g) {
-    var d = S.data, html = "", note = $("note"), m = S.metric, a = sr.main;
-    note.hidden = true;
-    if (S.view === "visitor") {
-      var cars = g.cars.p50, out = g.out.p50;
-      var cw = minWindow(cars, 9, 17), pk = peak(cars), op = peak(out), ow = minWindow(out, 14, 22);
-      html += panel("calm", "가장 한산한 2시간 (9~18시 중)", cw.h + "~" + (cw.h + 2) + "시", "중앙값 합계 " + fmt(cw.s) + "대");
-      html += panel("busy", "차가 가장 많은 시각", pk + "시", "중앙값 " + fmt(cars[pk]) + "대 주차 중");
-      html += panel("busy", "출차가 가장 몰리는 시각", op + "시", "시간당 중앙값 " + fmt(out[op]) + "대 출차 · 출차가 한산한 때 " + ow.h + "~" + (ow.h + 2) + "시");
-      note.hidden = false;
-      note.textContent = g.n_days < 20 ? groupName(g) + "은 관측한 날이 " + g.n_days + "일뿐이라 거칠게 읽어 주세요." : "같은 유형의 " + g.n_days + "일을 합친 분포입니다. 공연이 있는 날은 저녁(17~21시)이 더 붐비고 출차가 몰릴 수 있습니다. 운영자 화면에서 공연 규모별 차이를 볼 수 있습니다.";
-    } else if (sr.cur) {
-      var eveC = mean(sr.cur.cars_mean, 17, 21), eveB = mean(sr.base.cars_mean, 17, 21);
-      var op2 = peak(sr.cur.out_mean);
-      var dE = Math.round(eveC - eveB);
-      html += panel("busy", "저녁 17~21시 평균 주차 차량", fmt(eveC) + "대", sr.cur === sr.base ? "비교 기준 규모" : "기준(" + sh(sr.base.label) + ") 대비 " + (dE >= 0 ? "+" : "") + dE.toLocaleString("ko-KR") + "대");
-      html += panel("busy", "퇴장 피크 시각", op2 + "시", "시간당 평균 " + fmt(sr.cur.out_mean[op2]) + "대 출차");
-      html += panel("calm", "관측한 날", sr.cur.n_days + "일", (P.isSmall(sr.cur.n_days) ? "관측일이 적어 참고용 · " : "") + "공연 관람객 일 최대 중앙값 " + (sr.cur.aud_median ? sr.cur.aud_median.toLocaleString("ko-KR") + "명" : "–"));
-      note.hidden = false;
-      var u = d.meta.uplift;
-      note.textContent = "공연 규모별 같은 요일 유형 날들의 평균 비교입니다. 요일·월·기온 편차를 통제하면 일 관람객 1천 명당 18~23시 출차도 약 " + u.eve_out_per_1k + "대(95% 구간 " + u.eve_out_ci[0] + "~" + u.eve_out_ci[1] + ", " + u.n_days + "일) 많았습니다. 조건부 비교이며 공연이 원인이라는 뜻은 아닙니다. 관람객 수와 저녁 주차 차량의 관계는 위쪽 시뮬레이터에서 볼 수 있어요.";
-    } else {
-      var eve = mean(a, 17, 21), pk2 = peak(a);
-      html += panel("busy", "저녁 17~21시 평균", fmt(eve) + "대", m === "cars" ? "주차 중인 차량" : "시간당 출차");
-      html += panel("busy", "피크 시각", pk2 + "시", "평균 " + fmt(a[pk2]) + "대");
-      html += panel("calm", "관측한 날", g.n_days + "일", "이 유형은 공연 규모를 나눌 만큼 관측일이 없습니다");
-      note.hidden = false;
-      note.textContent = "공연 규모별 비교는 금요일과 주말(토·일)에서만 볼 수 있습니다. 평일(월~목)은 공연이 있었던 날이 거의 없습니다.";
-    }
-    $("signs").innerHTML = html;
   }
 
   // 월 번호 목록 → "3~7월·10월" (연속 구간은 ~ 로 묶는다)
@@ -811,7 +1046,7 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
 
   function basis() {
     fillLimits();
-    var v = S.data.meta.validation, u = S.data.meta.uplift;
+    var v = S.data.meta.validation;
     $("basis").innerHTML =
       '<p>2025년 시간별 주차대수를 달·요일·공휴일 정보로 맞추는 모델을 월 단위 롤링 검증(앞선 달로 학습해 다음 달 예측, ' + monthsText(v.fold_months) + ', ' + v.eval_hours.toLocaleString("ko-KR") + '시간)으로 평가했습니다. 평균 주차대수는 ' + v.mean_cars.toLocaleString("ko-KR") + '대입니다.</p>' +
       '<table><tr><th>방법</th><th>평균 오차(대)</th></tr>' +
