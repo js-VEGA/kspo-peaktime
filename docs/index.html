@@ -11,6 +11,12 @@
 <meta property="og:locale" content="ko_KR">
 <meta property="og:title" content="올팍 피크타임 · 올림픽공원 주차 혼잡 안내">
 <meta property="og:description" content="언제 가야 덜 붐비고 언제 나가야 덜 막힐까? 공연 규모별 저녁 주차와 퇴장 시간대를 2025년 관측 분포로 보여 줍니다.">
+<meta property="og:url" content="https://js-vega.github.io/kspo-peaktime/">
+<meta property="og:image" content="https://js-vega.github.io/kspo-peaktime/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="토요일 주차 중인 차량의 시각별 평소 값과 대부분의 날 범위 차트">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230c5e5b'/%3E%3Cpath d='M5 24 L11 15 L16 19 L22 8 L27 13' fill='none' stroke='%23ffffff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <style>
 :root {
@@ -102,6 +108,7 @@ figure.chart { margin: 0; }
 .ex-row span { display: block; font-size: 13px; color: var(--ink-2); }
 .date-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: 16px 0 0; }
 .date-l { font-size: 14px; font-weight: 700; }
+#date-in:focus, #date-in:focus-within { outline: 3px solid var(--t3); outline-offset: 2px; }
 #date-in { min-height: 44px; padding: 0 10px; font: inherit; font-size: 16px; color: var(--ink); background: var(--paper); border: 1px solid var(--ctl); border-radius: 10px; }
 .date-info { flex: 1 1 100%; margin: 0; font-size: 14px; color: var(--ink-2); }
 .date-info b { color: var(--ink); }
@@ -209,6 +216,7 @@ details.fold[open] summary::after { content: "−"; }
 </style>
 </head>
 <body>
+<noscript><p style="margin:0;padding:12px 16px;background:#f2eee3;color:#1c1c1a">이 안내는 JavaScript로 그래프와 결론을 만듭니다. 브라우저에서 JavaScript를 켜 주세요.</p></noscript>
 <header class="top">
   <div class="wrap">
     <div>
@@ -265,6 +273,7 @@ details.fold[open] summary::after { content: "−"; }
     </div>
     <div class="legend" id="legend"></div>
     <figure class="chart" id="chart-fig">
+      <figcaption class="sr-only" id="chart-sum"></figcaption>
       <div class="plot" id="plot"><svg id="plot-svg" aria-hidden="true" focusable="false"></svg><div class="tip" id="tip" hidden></div></div>
       <div class="sr-only"><table id="sr-table"></table></div>
     </figure>
@@ -830,6 +839,8 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
     var mname = S.metric === "cars" ? "주차 중인 차량" : "시간당 출차";
     $("chart-title").textContent = groupName(g) + " · " + mname + " (5시~23시)";
     legend(sr);
+    // 차트 요약(대체 텍스트): 화면의 차트 제목 + 결론 문장. 값 전체는 sr-table
+    $("chart-sum").textContent = $("chart-title").textContent + ". " + $("headline").textContent + " 시각별 값은 아래 표에 있습니다.";
     if (visitor) { $("plot").removeAttribute("tabindex"); $("plot").removeAttribute("role"); $("plot").setAttribute("aria-label", "시간대별 차트"); }
     else { $("plot").setAttribute("tabindex", "0"); $("plot").setAttribute("role", "slider"); $("plot").setAttribute("aria-label", "시각 살펴보기 (좌우 화살표로 이동)"); $("plot").setAttribute("aria-valuemin", H0); $("plot").setAttribute("aria-valuemax", H1); }
     renderPlanner(); // 방문객: 슬라이더·결과·차트를 함께 그린다
