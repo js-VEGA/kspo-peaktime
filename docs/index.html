@@ -499,7 +499,7 @@ var PeakLogic = (function () {
     }
     // 2) 평일(월~목) 9~18시 중 평소 주차 차량 2시간 합이 가장 작은 요일·시간대
     for (i = 0; i <= 3; i++) { var mw = minWindow(G[i].cars.p50, 9, 17); if (mw && (best === null || mw.s < best.s)) best = { g: i, h: mw.h, s: mw.s, v: G[i].cars.p50[mw.h] }; }
-    if (best) out.push({ id: "weekday-calm", title: "평일 한산한 때", sub: G[best.g].label + "요일 " + best.h + "~" + (best.h + 2) + "시 · " + best.h + "시 평소 " + fmtN(best.v) + "대 주차", hash: buildHash({ v: "visitor", g: best.g, m: "cars", a: best.h, d: Math.min(H_MAX, best.h + 2) }), nums: [best.h, best.h + 2, best.h, best.v] });
+    if (best) out.push({ id: "weekday-calm", title: "평일 덜 붐비는 때", sub: G[best.g].label + "요일 " + best.h + "~" + (best.h + 2) + "시 · " + best.h + "시 평소 " + fmtN(best.v) + "대 주차", hash: buildHash({ v: "visitor", g: best.g, m: "cars", a: best.h, d: Math.min(H_MAX, best.h + 2) }), nums: [best.h, best.h + 2, best.h, best.v] });
     // 3) 금요일 대규모 공연 저녁 퇴장(운영자, 시간당 출차)
     var ft = data.tiers.fri, ti = ft[3] && ft[3].n_days > 0 ? 3 : null;
     if (ti != null) {
