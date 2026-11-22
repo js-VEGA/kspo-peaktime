@@ -52,7 +52,9 @@ python -m venv .venv
 .venv/Scripts/python -X utf8 -I src/export_site_data_2025.py             # 웹용 JSON 생성
 ```
 
-### 다가오는 공연 갱신 (KOPIS, 스냅숏이 7일을 넘으면 화면에 경고가 뜹니다)
+### 다가오는 공연 갱신 (KOPIS)
+
+화면의 일정 칸에는 항상 "일정은 KOPIS(기준일 YYYY-MM-DD) 자료이며, 이후 변경·추가된 공연은 반영되지 않았을 수 있습니다."라는 중립 안내가 붙고, 기준일이 30일을 넘으면 "자료가 오래되었습니다. 최신 일정은 KOPIS에서 확인하세요."가 덧붙습니다(경고 표시는 쓰지 않음). 고른 날짜가 일정 자료 범위 밖이면 공연 목록을 표시하지 않고 공연 규모는 직접 고릅니다.
 
 ```bash
 # .env 에 KOPIS_SERVICE_KEY 필요. 먼저 data/raw/kopis/list_upcoming/ 폴더를 비웁니다(캐시라 그대로 두면 다시 받지 않음).

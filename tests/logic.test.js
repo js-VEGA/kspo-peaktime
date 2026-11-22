@@ -369,6 +369,15 @@ t("daysBetween·monthsText", () => {
   assert.strictEqual(L.monthsText(Object.keys(D.meta.valid_days_by_month)), "1~7·10월");
   assert.strictEqual(L.monthsText(["1", "2", "5"]), "1·2·5월");
 });
+t("scheduleNote: 항상 중립 문장, 기준일 30일 초과(31일)부터만 '오래되었습니다' 덧붙임, 경고 표현 없음", () => {
+  const base = "일정은 KOPIS(기준일 2026-11-22) 자료이며, 이후 변경·추가된 공연은 반영되지 않았을 수 있습니다.";
+  const old = " 자료가 오래되었습니다. 최신 일정은 KOPIS에서 확인하세요.";
+  assert.strictEqual(L.scheduleNote("2026-11-22", "2026-11-22"), base);
+  assert.strictEqual(L.scheduleNote("2026-11-22", "2026-12-21"), base);       // 29일
+  assert.strictEqual(L.scheduleNote("2026-11-22", "2026-12-22"), base);       // 30일
+  assert.strictEqual(L.scheduleNote("2026-11-22", "2026-12-23"), base + old); // 31일
+  assert(!/경고|일 전/.test(L.scheduleNote("2026-11-22", "2027-06-01")));
+});
 t("upcoming.json 형식: 기준일·범위·출처, 공연장 제안은 표본 5 이상만", () => {
   const U = JSON.parse(fs.readFileSync(path.join(root, "docs", "data", "upcoming.json"), "utf8"));
   assert(/^\d{4}-\d{2}-\d{2}$/.test(U.meta.snapshot)); assert(U.meta.range[0] <= U.meta.range[1]);

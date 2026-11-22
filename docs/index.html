@@ -118,7 +118,6 @@ figure.chart { margin: 0; }
 .upc li { margin: 2px 0; color: var(--ink); }
 .upc li span { color: var(--ink-2); }
 .upc .upc-sug { color: var(--ink); }
-.upc .upc-warn { color: var(--ink); font-weight: 700; }
 .upc .upc-src { font-size: 13px; }
 .date-info b { color: var(--ink); }
 .seg.ptiers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--rule); width: 100%; max-width: 560px; }
@@ -532,6 +531,13 @@ var PeakLogic = (function () {
     var pa = a.split("-"), pb = b.split("-");
     return Math.round((Date.UTC(+pb[0], pb[1] - 1, +pb[2]) - Date.UTC(+pa[0], pa[1] - 1, +pa[2])) / 864e5);
   }
+  /* 일정 기준일 안내(항상 중립 문장). 기준일에서 30일을 넘으면(31일부터) 오래되었다는 문장을 덧붙인다. 경고 표시는 쓰지 않는다. */
+  var NOTE_OLD_DAYS = 30;
+  function scheduleNote(snapshot, today) {
+    var t = "일정은 KOPIS(기준일 " + snapshot + ") 자료이며, 이후 변경·추가된 공연은 반영되지 않았을 수 있습니다.";
+    if (daysBetween(snapshot, today) > NOTE_OLD_DAYS) t += " 자료가 오래되었습니다. 최신 일정은 KOPIS에서 확인하세요.";
+    return t;
+  }
   function monthsText(keys) { // [1,2,3,4,5,6,7,10] → '1~7·10월'
     var m = keys.map(Number).sort(function (a, b) { return a - b; }), out = [], i = 0, j;
     while (i < m.length) { j = i; while (j + 1 < m.length && m[j + 1] === m[j] + 1) j++; out.push(j - i >= 2 ? m[i] + "~" + m[j] : j > i ? m[i] + "·" + m[j] : String(m[i])); i = j + 1; }
@@ -647,7 +653,7 @@ var PeakLogic = (function () {
               H_MIN: H_MIN, H_MAX: H_MAX, isHour: isHour, levelOf: levelOf, planVisit: planVisit,
               modelFor: modelFor, sliderBounds: sliderBounds, clampToBounds: clampToBounds, predictEvening: predictEvening,
               SMALL_N: SMALL_N, isSmall: isSmall, HOLIDAYS_2026: HOLIDAYS_2026, groupIndexForDate: groupIndexForDate,
-              buildHash: buildHash, parseHash: parseHash, showsOn: showsOn, suggestTier: suggestTier, daysBetween: daysBetween, monthsText: monthsText };
+              buildHash: buildHash, parseHash: parseHash, showsOn: showsOn, suggestTier: suggestTier, daysBetween: daysBetween, monthsText: monthsText, scheduleNote: scheduleNote, NOTE_OLD_DAYS: NOTE_OLD_DAYS };
   return api;
 })();
 if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogic; }
@@ -925,8 +931,8 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
     var box = $("upc"), u = S.upc;
     if (!u || !t || S.view !== "visitor") { box.hidden = true; box.innerHTML = ""; return; }
     var r = P.showsOn(u, t.date), h = "", m = u.meta;
-    h += "<p><b>이날 올림픽공원 공연</b> · KOPIS 일정(기준일 " + m.snapshot + ")</p>";
-    if (!r.inRange) h += "<p>이 날짜는 일정 자료 범위(" + m.range[0] + " ~ " + m.range[1] + ") 밖이에요.</p>";
+    h += "<p><b>이날 올림픽공원 공연</b> · KOPIS 일정</p>";
+    if (!r.inRange) h += "<p>이 날짜는 일정 자료 범위(" + m.range[0] + "~" + m.range[1] + ") 밖이라 공연 목록을 표시하지 않습니다.</p>";
     else if (!r.shows.length) h += "<p>KOPIS 일정에 이날 올림픽공원 공연이 없어요.</p>";
     else {
       h += "<ul>" + r.shows.map(function (x) {
@@ -940,8 +946,7 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
       else if (!sg) h += "<p>이 공연장은 2025년 단독 공연일이 5일 미만이라 공연 규모를 제안하지 않아요.</p>";
     }
     h += "<p>일정 정보가 없는 날은 공연이 없다는 뜻이 아닙니다. 실제 관람객은 다를 수 있습니다.</p>";
-    var age = P.daysBetween(m.snapshot, P.todayString(new Date()));
-    if (age > 7) h += '<p class="upc-warn">일정 자료가 ' + age + "일 전(" + m.snapshot + ") 기준이라 바뀌었을 수 있어요.</p>";
+    h += "<p>" + P.scheduleNote(m.snapshot, P.todayString(new Date())) + "</p>";
     h += '<p class="upc-src">출처: (재)예술경영지원센터 공연예술통합전산망(www.kopis.or.kr)</p>';
     box.innerHTML = h; box.hidden = false;
   }
