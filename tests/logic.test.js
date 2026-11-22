@@ -287,4 +287,54 @@ t("visitorHeadline: 모든 유형에서 구간이 시각 범위 안, 한산 구�
   });
 });
 
+// ---- 날짜·공연 규모·예시 시나리오 ----
+t("typeForDate: 형식·실존 날짜만, 2026 공휴일은 휴(7), 다른 해는 요일만(covered=false)", () => {
+  const sat = L.typeForDate("2026-12-05"); assert.strictEqual(sat.g, 5); assert.strictEqual(sat.covered, true); assert.strictEqual(sat.holiday, false);
+  const xmas = L.typeForDate("2026-12-25"); assert.strictEqual(xmas.g, 7); assert.strictEqual(xmas.dow, 4);
+  const y27 = L.typeForDate("2027-01-01"); assert.strictEqual(y27.g, 4); assert.strictEqual(y27.covered, false, "2027 은 공휴일 자료 없음 → 요일(금)");
+  ["2026-02-30", "2026-13-01", "26-12-05", "2026-1-5", "", null, undefined, "1999-12-31", "2100-01-01", "2026-12-05x"].forEach((x) => assert.strictEqual(L.typeForDate(x), null, String(x)));
+  assert.strictEqual(L.todayString(new Date(2026, 0, 5)), "2026-01-05");
+});
+t("parseHash/buildHash: date·p 키, 기존 g 와 공존, 잘못된 값은 버림", () => {
+  const q = L.parseHash("#v=visitor&g=2&date=2026-12-05&p=3&a=10&d=16", 8);
+  assert.strictEqual(q.date, "2026-12-05"); assert.strictEqual(q.g, 2); assert.strictEqual(q.p, 3);
+  assert.strictEqual(L.parseHash("date=2026-02-30&p=4", 8).date, undefined);
+  assert.strictEqual(L.parseHash("date=2026-02-30&p=4", 8).p, undefined);
+  const h = L.buildHash({ v: "visitor", g: 5, date: "2026-12-05", m: "cars", p: 2, a: 9, d: 15 });
+  const back = L.parseHash(h, 8); assert.strictEqual(JSON.stringify(back), JSON.stringify({ v: "visitor", g: 5, m: "cars", a: 9, d: 15, p: 2, date: "2026-12-05" }));
+});
+t("tierOptions: 금·토·일만, 관측 0일은 비활성, 5일 미만은 참고용", () => {
+  D.groups.forEach((g) => {
+    const o = L.tierOptions(g);
+    if (["fri", "sat", "sun"].includes(g.key)) {
+      assert(o && o.length === 4 && o[0].enabled, g.key);
+      o.slice(1).forEach((x, i) => { const tt = g.tiers[i + 1]; assert.strictEqual(x.n, tt.n_days); assert.strictEqual(x.enabled, tt.n_days > 0); assert.strictEqual(x.small, tt.n_days < 5); });
+    } else assert.strictEqual(o, null, g.key);
+  });
+  const sat = D.groups[5]; assert.strictEqual(L.tierOptions(sat)[1].small, sat.tiers[1].n_days < 5);
+  // 관측 0일 규모
+  const fake = { n_days: 9, cars: {}, out: {}, tiers: [{ n_days: 0 }, { n_days: 0 }, { n_days: 2, cars: {}, out: {} }, { n_days: 7, cars: {}, out: {} }] };
+  const fo = L.tierOptions(fake); assert.strictEqual(fo[1].enabled, false); assert.strictEqual(fo[2].small, true); assert.strictEqual(fo[3].small, false);
+});
+t("profileFor: 고를 수 없는 규모·평일은 유형 전체로 되돌림", () => {
+  const sat = D.groups[5], mon = D.groups[0];
+  assert.strictEqual(L.profileFor(sat, 3).tier, 3); assert.strictEqual(L.profileFor(sat, 3).cars, sat.tiers[3].cars);
+  assert.strictEqual(L.profileFor(sat, 0).cars, sat.cars);
+  assert.strictEqual(L.profileFor(mon, 3).tier, 0); assert.strictEqual(L.profileFor(mon, 3).cars, mon.cars);
+  const fake = { n_days: 9, cars: { a: 1 }, out: {}, tiers: [{ n_days: 0 }, { n_days: 0 }, { n_days: 2, cars: {}, out: {} }, { n_days: 7, cars: {}, out: {} }] };
+  assert.strictEqual(L.profileFor(fake, 1).tier, 0);
+  // 규모별 분포에서도 플래너가 동작
+  const r = L.planVisit(L.profileFor(sat, 3), thr, 10, 16); assert(r.ok);
+});
+t("scenarios: 3개, 숫자는 JSON 값, 해시는 다시 읽으면 같은 상태", () => {
+  const sc = L.scenarios(D); assert.strictEqual(sc.length, 3);
+  const sat = D.groups[5].tiers[3], pk = L.peakHour(sat.cars.p50);
+  assert.strictEqual(JSON.stringify(sc[0].nums), JSON.stringify([pk, sat.cars.p50[pk], sat.n_days]));
+  const q0 = L.parseHash(sc[0].hash, 8); assert.strictEqual(q0.g, 5); assert.strictEqual(q0.p, 3); assert(q0.d >= q0.a);
+  let best = null; for (let g = 0; g <= 3; g++) { const w = L.minWindow(D.groups[g].cars.p50, 9, 17); if (!best || w.s < best.s) best = { g, h: w.h, s: w.s }; }
+  const q1 = L.parseHash(sc[1].hash, 8); assert.strictEqual(q1.g, best.g); assert.strictEqual(q1.a, best.h);
+  const f = D.tiers.fri[3], op = L.peakHour(f.out_mean); assert.strictEqual(JSON.stringify(sc[2].nums), JSON.stringify([op, f.out_mean[op], f.n_days]));
+  assert.strictEqual(L.parseHash(sc[2].hash, 8).v, "operator");
+});
+
 console.log(n + "개 검증 통과" + (process.exitCode ? " (실패 있음)" : ""));

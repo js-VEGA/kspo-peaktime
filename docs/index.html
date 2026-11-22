@@ -92,6 +92,27 @@ figure.chart { margin: 0; }
 .plot .ax { font-size: 13px; fill: var(--ink-2); }
 .plot .zl { font-size: 13px; fill: var(--ink-2); paint-order: stroke; stroke: var(--paper); stroke-width: 3px; }
 .plot .flag { font-size: 13px; font-weight: 700; fill: #fff; }
+/* 예시·날짜·방문객 공연 규모 */
+.examples { margin: 16px 0 0; }
+.ex-h { margin: 0 0 6px; font-size: 14px; font-weight: 700; color: var(--ink-2); }
+.ex-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.ex-row button { min-height: 44px; text-align: left; padding: 8px 12px; border: 1px solid var(--ctl); border-radius: 10px; background: var(--paper); cursor: pointer; line-height: 1.35; }
+.ex-row button:hover { background: var(--paper-2); }
+.ex-row b { display: block; font-size: 15px; }
+.ex-row span { display: block; font-size: 13px; color: var(--ink-2); }
+.date-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: 16px 0 0; }
+.date-l { font-size: 14px; font-weight: 700; }
+#date-in { min-height: 44px; padding: 0 10px; font: inherit; font-size: 16px; color: var(--ink); background: var(--paper); border: 1px solid var(--ctl); border-radius: 10px; }
+.date-info { flex: 1 1 100%; margin: 0; font-size: 14px; color: var(--ink-2); }
+.date-info b { color: var(--ink); }
+.seg.ptiers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--rule); width: 100%; max-width: 560px; }
+.seg.ptiers button { border: 0; background: var(--paper); line-height: 1.3; padding: 6px 4px; font-size: 15px; }
+.seg.ptiers button[aria-pressed="true"] { background: var(--t3); }
+.seg.ptiers small { display: block; font-size: 12px; font-weight: 400; }
+#ptier-reason:empty { display: none; }
+#ptier-reason { margin: 6px 0 0; }
+details.inline { margin: 10px 0 0; font-size: 15px; }
+details.inline summary { min-height: 44px; display: inline-flex; align-items: center; cursor: pointer; font-weight: 700; color: var(--t3); text-decoration: underline; text-underline-offset: 3px; }
 .tip { position: absolute; z-index: 2; pointer-events: none; background: var(--ink); color: #fff; font-size: 13px; line-height: 1.45; padding: 6px 10px; border-radius: 6px; max-width: 230px; }
 .tip b { font-weight: 800; }
 
@@ -133,7 +154,9 @@ input[type=range]:disabled { cursor: not-allowed; opacity: .5; }
 #sim-out .big { font-size: 17px; }
 #sim-out ul { margin: 6px 0; padding-left: 1.2em; font-size: 15px; }
 #sim-out li { margin: 4px 0; }
-#sim-out .sub { color: var(--ink-2); font-size: 14px; }
+#sim-out .sub, #sim-method .sub { color: var(--ink-2); font-size: 14px; }
+#sim-method p { margin: 6px 0; }
+#sim-method ul { margin: 6px 0; padding-left: 1.2em; font-size: 15px; }
 
 /* 펼침 */
 details.fold { border-top: 1px solid var(--rule); font-size: 15px; }
@@ -178,6 +201,7 @@ details.fold[open] summary::after { content: "−"; }
 
 @media (max-width: 640px) {
   .seg.tiers { grid-template-columns: repeat(2, 1fr); }
+  .ex-row { grid-template-columns: 1fr; }
   .tabs button { padding: 0 10px; }
   .top h1 { font-size: 22px; }
 }
@@ -206,9 +230,23 @@ details.fold[open] summary::after { content: "−"; }
   </div>
 
   <div id="app-view" role="tabpanel" aria-labelledby="tab-visitor">
+    <section class="examples" aria-labelledby="ex-title">
+      <h2 class="ex-h" id="ex-title">예시로 바로 보기</h2>
+      <div class="ex-row" id="examples"></div>
+    </section>
+    <div class="date-row">
+      <label class="date-l" for="date-in">방문 날짜</label>
+      <input type="date" id="date-in" min="2000-01-01" max="2099-12-31" aria-describedby="date-info">
+      <p class="date-info" id="date-info" aria-live="polite"></p>
+    </div>
     <div class="pick" role="group" aria-label="요일 유형 선택">
       <div class="seg" id="days"></div>
       <div class="seg" id="days-hol"></div>
+    </div>
+    <div id="ptier-wrap" hidden>
+      <p class="pick-label" id="ptier-label">그날 공연 규모 · 그날 관람객 수의 최댓값 기준</p>
+      <div class="seg ptiers" id="ptiers" role="group" aria-labelledby="ptier-label"></div>
+      <p class="hint" id="ptier-reason"></p>
     </div>
     <div id="tier-wrap" hidden>
       <p class="pick-label" id="tier-label">공연 규모 · 그날 관람객 수의 최댓값 기준 (관측한 날 수)</p>
@@ -248,6 +286,10 @@ details.fold[open] summary::after { content: "−"; }
       <input type="range" id="sim-range" min="0" max="1" step="0.1" value="0" aria-describedby="sim-reason sim-out">
       <div class="sim-scale" aria-hidden="true"><span id="sim-min"></span><span id="sim-max"></span></div>
       <div id="sim-out" aria-live="polite"></div>
+      <details class="inline" id="sim-fold" hidden>
+        <summary>계산 방식</summary>
+        <div id="sim-method"></div>
+      </details>
       <p class="hint" id="sim-reason" style="margin:8px 0 0"></p>
     </section>
 
@@ -412,9 +454,64 @@ var PeakLogic = (function () {
     return (d.getDay() + 6) % 7;
   }
 
+  /* 날짜 → 요일 유형. 'YYYY-MM-DD'(실존 날짜, 2000~2099년)만 받는다.
+     공휴일 상수가 있는 해(HOLIDAY_YEARS)는 공휴일이면 '휴'(7), 그 밖의 해는 요일로만 판정하고 covered=false 를 돌려준다. */
+  var HOLIDAY_YEARS = [2026];
+  function typeForDate(str) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(str || ""));
+    if (!m) return null;
+    var y = +m[1], mo = +m[2], da = +m[3];
+    if (y < 2000 || y > 2099) return null;
+    var dt = new Date(y, mo - 1, da);
+    if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== da) return null;
+    var covered = HOLIDAY_YEARS.indexOf(y) >= 0, dow = (dt.getDay() + 6) % 7, hol = covered && HOLIDAYS_2026.indexOf(str) >= 0;
+    return { date: str, dow: dow, holiday: hol, covered: covered, g: hol ? 7 : dow };
+  }
+  function todayString(d) { d = d || new Date(); return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()); }
+
+  /* 방문객 화면의 공연 규모 선택(0 모름, 1 소, 2 중, 3 대). group.tiers 가 없으면(평일·공휴일) null.
+     각 선택지: {p, n, enabled(관측일 > 0), small(관측일 5일 미만)} */
+  function tierOptions(group) {
+    if (!group || !group.tiers) return null;
+    var o = [{ p: 0, n: group.n_days, enabled: true, small: isSmall(group.n_days) }], i, t;
+    for (i = 1; i <= 3; i++) { t = group.tiers[i]; o.push({ p: i, n: t ? t.n_days : 0, enabled: !!(t && t.n_days > 0 && t.cars), small: !!(t && isSmall(t.n_days)) }); }
+    return o;
+  }
+  // 선택한 규모의 분포(없거나 고를 수 없으면 유형 전체). 반환은 group 과 같은 꼴 {cars, out, n_days, tier}
+  function profileFor(group, p) {
+    var o = tierOptions(group);
+    if (!o || !p || !o[p] || !o[p].enabled) return { cars: group.cars, out: group.out, n_days: group.n_days, tier: 0 };
+    var t = group.tiers[p];
+    return { cars: t.cars, out: t.out, n_days: t.n_days, tier: p, label: t.label };
+  }
+
+  function fmtN(v) { return Math.round(v).toLocaleString("ko-KR"); }
+  /* 첫 화면 예시 3개. 숫자는 모두 data(JSON)에서 계산하고, hash 로 상태를 연다. */
+  function scenarios(data) {
+    var out = [], G = data.groups, i, h, best = null;
+    var thr = { cars: data.meta.cars_thresholds, out: data.meta.out_thresholds };
+    // 1) 토요일 대규모 공연(방문객): 그 분포의 가장 붐비는 시각, 가장 한산한 도착, 나가기 편한 시각
+    var sat = G[5], pr = profileFor(sat, 3);
+    if (pr.tier === 3) {
+      var hl = visitorHeadline(pr, thr), pk = peakHour(pr.cars.p50);
+      var dep = hl.relief ? hl.relief.from : Math.min(H_MAX, pk + 3), arr = hl.calm ? hl.calm.from : 10;
+      out.push({ id: "sat-big", title: "토요일 대규모 공연", sub: pk + "시 평소 " + fmtN(pr.cars.p50[pk]) + "대 주차 · 관측 " + pr.n_days + "일", hash: buildHash({ v: "visitor", g: 5, m: "cars", p: 3, a: arr, d: Math.max(arr, dep) }), nums: [pk, pr.cars.p50[pk], pr.n_days] });
+    }
+    // 2) 평일(월~목) 9~18시 중 평소 주차 차량 2시간 합이 가장 작은 요일·시간대
+    for (i = 0; i <= 3; i++) { var mw = minWindow(G[i].cars.p50, 9, 17); if (mw && (best === null || mw.s < best.s)) best = { g: i, h: mw.h, s: mw.s, v: G[i].cars.p50[mw.h] }; }
+    if (best) out.push({ id: "weekday-calm", title: "평일 한산한 때", sub: G[best.g].label + "요일 " + best.h + "~" + (best.h + 2) + "시 · " + best.h + "시 평소 " + fmtN(best.v) + "대 주차", hash: buildHash({ v: "visitor", g: best.g, m: "cars", a: best.h, d: Math.min(H_MAX, best.h + 2) }), nums: [best.h, best.h + 2, best.h, best.v] });
+    // 3) 금요일 대규모 공연 저녁 퇴장(운영자, 시간당 출차)
+    var ft = data.tiers.fri, ti = ft[3] && ft[3].n_days > 0 ? 3 : null;
+    if (ti != null) {
+      var o = ft[ti].out_mean, op = peakHour(o);
+      out.push({ id: "fri-exit", title: "금요일 저녁 퇴장", sub: "대규모 공연일 " + op + "시 시간당 평균 " + fmtN(o[op]) + "대 출차 · 관측 " + ft[ti].n_days + "일", hash: buildHash({ v: "operator", g: 4, m: "out", t: ti }), nums: [op, o[op], ft[ti].n_days] });
+    }
+    return out;
+  }
+
   /* 화면 상태 ↔ 주소 해시. 키: v 화면, g 유형(월0…일6·휴7), m 지표, t 공연 규모, a 도착, d 출발, s 관람객(천 명).
      읽을 때 범위를 벗어난 값은 버린다. */
-  var HASH_KEYS = ["v", "g", "m", "t", "a", "d", "s"];
+  var HASH_KEYS = ["v", "g", "date", "m", "t", "p", "a", "d", "s"];
   function buildHash(st) {
     var parts = [];
     HASH_KEYS.forEach(function (k) {
@@ -438,6 +535,8 @@ var PeakLogic = (function () {
     var a = int(q.a, H_MIN, H_MAX); if (a != null) out.a = a;
     var d = int(q.d, H_MIN, H_MAX); if (d != null) out.d = d;
     if (/^\d+(\.\d+)?$/.test(q.s || "")) { var s = parseFloat(q.s); if (isFinite(s) && s <= 1000) out.s = s; }
+    var p = int(q.p, 0, 3); if (p != null) out.p = p;
+    if (typeForDate(q.date)) out.date = q.date;
     return out;
   }
 
@@ -492,7 +591,8 @@ var PeakLogic = (function () {
     };
   }
 
-  var api = { niceScale: niceScale, peakHour: peakHour, minWindow: minWindow, busyRun: busyRun, reliefAfter: reliefAfter, visitorHeadline: visitorHeadline,
+  var api = { typeForDate: typeForDate, todayString: todayString, HOLIDAY_YEARS: HOLIDAY_YEARS, tierOptions: tierOptions, profileFor: profileFor, scenarios: scenarios,
+              niceScale: niceScale, peakHour: peakHour, minWindow: minWindow, busyRun: busyRun, reliefAfter: reliefAfter, visitorHeadline: visitorHeadline,
               H_MIN: H_MIN, H_MAX: H_MAX, isHour: isHour, levelOf: levelOf, planVisit: planVisit,
               modelFor: modelFor, sliderBounds: sliderBounds, clampToBounds: clampToBounds, predictEvening: predictEvening,
               SMALL_N: SMALL_N, isSmall: isSmall, HOLIDAYS_2026: HOLIDAYS_2026, groupIndexForDate: groupIndexForDate,
@@ -506,7 +606,7 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
   "use strict";
   var P = PeakLogic;
   var H0 = 5, H1 = 23;
-  var S = { data: null, view: "visitor", g: 0, tier: 0, metric: "cars", hour: null, hover: null, arrive: 10, depart: 16, sim: null };
+  var S = { data: null, view: "visitor", g: 0, tier: 0, metric: "cars", hour: null, hover: null, arrive: 10, depart: 16, sim: null, date: null, p: 0 };
   var $ = function (id) { return document.getElementById(id); };
   var fmt = function (v) { return v == null ? "–" : Math.round(v).toLocaleString("ko-KR"); };
   var LV = { calm: "한산", mid: "보통", busy: "붐빔" };
@@ -560,12 +660,21 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
       return { main: cur[key], base: cur === base ? null : base[key], band: null, mainName: "평균", cur: cur, baseT: base, tier: true };
     }
     if (S.view === "operator") return { main: g[m].mean, base: null, band: { lo: g[m].p10, hi: g[m].p90 }, mainName: "평균" };
-    return { main: g[m].p50, base: null, band: { lo: g[m].p10, hi: g[m].p90 }, mainName: "평소" };
+    var pr = prof();
+    return { main: pr[m].p50, base: null, band: { lo: pr[m].p10, hi: pr[m].p90 }, mainName: "평소", prof: pr };
+  }
+  // 방문객 화면에서 고른 공연 규모의 분포(고를 수 없으면 유형 전체)
+  function prof() { return P.profileFor(S.data.groups[S.g], S.p); }
+  function setDate(str) { // 날짜 → 요일 유형. 잘못된 날짜면 무시
+    var t = P.typeForDate(str);
+    if (!t) return false;
+    S.date = str; S.g = t.g; return true;
   }
   // 세로축은 모든 유형을 같은 눈금으로 비교할 수 있도록 지표별 전체 최댓값을 쓴다.
   function topOf() {
     var top = 0, m = S.metric;
     S.data.groups.forEach(function (g) { g[m].p90.forEach(function (v) { if (v != null && v > top) top = v; }); });
+    S.data.groups.forEach(function (g) { (g.tiers || []).forEach(function (t) { if (t[m]) t[m].p90.forEach(function (v) { if (v != null && v > top) top = v; }); }); });
     ["fri", "weekend"].forEach(function (k) { S.data.tiers[k].forEach(function (t) { var a = t[m === "cars" ? "cars_mean" : "out_mean"]; if (a) a.forEach(function (v) { if (v != null && v > top) top = v; }); }); });
     return top;
   }
@@ -576,7 +685,7 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
       var b = document.createElement("button");
       b.type = "button"; b.textContent = g.key === "hol" ? "공휴일·연휴" : g.label;
       b.setAttribute("aria-label", groupName(g) + " (관측 " + g.n_days + "일" + (P.isSmall(g.n_days) ? ", 참고용" : "") + ")");
-      b.addEventListener("click", function () { S.g = i; S.tier = defaultTier(); S.sim = null; S.hour = null; S.hover = null; render(); });
+      b.addEventListener("click", function () { S.g = i; S.date = null; S.tier = defaultTier(); S.sim = null; S.hour = null; S.hover = null; render(); });
       (g.key === "hol" ? hol : days).appendChild(b);
     });
     var tabs = [$("tab-visitor"), $("tab-operator"), $("tab-status")], views = ["visitor", "operator", "status"];
@@ -601,6 +710,24 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
     // 방문 시각 플래너 슬라이더(차트의 핸들과 연동)
     $("pl-arrive").addEventListener("input", function () { setHandle("arrive", parseInt(this.value, 10)); renderPlan(); });
     $("pl-depart").addEventListener("input", function () { setHandle("depart", parseInt(this.value, 10)); renderPlan(); });
+    $("date-in").addEventListener("change", function () {
+      if (this.value && setDate(this.value)) { S.tier = defaultTier(); S.sim = null; S.hour = null; S.hover = null; }
+      else if (!this.value) S.date = null;
+      render();
+    });
+    var pt = $("ptiers");
+    ["모름", "소규모", "중규모", "대규모"].forEach(function (lab, i) {
+      var b = document.createElement("button"); b.type = "button"; b.setAttribute("data-p", i);
+      b.addEventListener("click", function () { S.p = i; S.hour = null; S.hover = null; render(); });
+      pt.appendChild(b);
+    });
+    var ex = $("examples");
+    P.scenarios(S.data).forEach(function (sc) {
+      var b = document.createElement("button"); b.type = "button"; b.setAttribute("data-id", sc.id);
+      b.innerHTML = "<b>" + sc.title + "</b><span>" + sc.sub + "</span>";
+      b.addEventListener("click", function () { location.hash = "#" + sc.hash; window.scrollTo(0, 0); });
+      ex.appendChild(b);
+    });
     $("copy-link").addEventListener("click", copyLink);
     window.addEventListener("hashchange", applyHash); // 같은 탭에서 주소만 바뀐 링크를 열 때(replaceState 로 바꾼 해시는 이벤트를 만들지 않는다)
     initPlot();
@@ -613,8 +740,13 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
   // 주소 해시 → 화면 상태. 해시가 없으면 오늘 요일(공휴일이면 '휴')을 고른다. 해시가 있으면 해시가 우선.
   // #v=operator&g=5&t=3&m=out&s=12.5  /  #v=visitor&g=5&a=10&d=16  (g 월0…일6·휴7, t 공연 규모 번호, s 관람객 천 명, a·d 도착·출발)
   function applyHash() {
-    var q = P.parseHash(location.hash, S.data.groups.length), gi = P.groupIndexForDate(new Date());
-    S.g = q.g != null ? q.g : (gi == null ? 0 : gi);
+    var q = P.parseHash(location.hash, S.data.groups.length);
+    // 날짜(date)가 있으면 날짜가 우선, 없고 g 가 있으면 g, 둘 다 없으면 오늘 날짜
+    S.date = null;
+    if (q.date) setDate(q.date);
+    else if (q.g != null) S.g = q.g;
+    else if (!setDate(P.todayString(new Date()))) { var gi = P.groupIndexForDate(new Date()); S.g = gi == null ? 0 : gi; }
+    S.p = q.p != null ? q.p : 0;
     S.tier = defaultTier();
     var tl = tierList();
     if (q.t != null && tl && tl[q.t] && tl[q.t].n_days > 0) S.tier = q.t; // 관측일이 없는 규모는 무시
@@ -630,7 +762,8 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
   function currentHash() {
     if (S.view === "status") return P.buildHash({ v: "status" });
     var st = { v: S.view, g: S.g, m: S.metric };
-    if (S.view === "visitor") { st.a = S.arrive; st.d = S.depart; }
+    if (S.date) st.date = S.date;
+    if (S.view === "visitor") { st.a = S.arrive; st.d = S.depart; if (prof().tier) st.p = S.p; }
     else {
       if (tierList()) st.t = S.tier;
       if (P.modelFor(S.data.sim, S.data.groups[S.g].key) && S.sim != null) st.s = S.sim;
@@ -674,6 +807,8 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
     var dayBtns = Array.prototype.slice.call($("days").querySelectorAll("button")).concat(Array.prototype.slice.call($("days-hol").querySelectorAll("button")));
     dayBtns.forEach(function (b, i) { b.setAttribute("aria-pressed", i === S.g ? "true" : "false"); });
     Array.prototype.forEach.call($("metric").querySelectorAll("button"), function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-m") === S.metric ? "true" : "false"); });
+    renderDate(g);
+    renderPTiers(g, visitor);
     $("tier-wrap").hidden = !(!visitor && tl);
     if (!visitor && tl) {
       var box = $("tiers"); box.innerHTML = "";
@@ -704,6 +839,33 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
     syncHash();
   }
 
+  /* ---------- 날짜와 방문객 공연 규모 ---------- */
+  var DOW = ["월", "화", "수", "목", "금", "토", "일"];
+  function renderDate(g) {
+    var inp = $("date-in"), info = $("date-info"), t = S.date ? P.typeForDate(S.date) : null;
+    inp.value = t ? S.date : "";
+    var html;
+    if (t) {
+      html = "<b>" + t.date + "(" + DOW[t.dow] + ")</b> → <b>" + groupName(g) + " 유형</b>";
+      if (!t.covered) html += " · 이 해는 공휴일 자료가 없어 요일로만 판정했어요";
+    } else html = "요일을 직접 골랐어요. 날짜를 고르면 요일·공휴일 유형을 자동으로 정해요";
+    info.innerHTML = html + ". 2025년 관측 분포 기반 안내입니다.";
+  }
+  function renderPTiers(g, visitor) {
+    var wrap = $("ptier-wrap"), opts = P.tierOptions(g), why = $("ptier-reason"), names = ["모름", "소규모", "중규모", "대규모"];
+    wrap.hidden = !visitor;
+    if (!visitor) return;
+    var cur = prof().tier;
+    Array.prototype.forEach.call($("ptiers").querySelectorAll("button"), function (b, i) {
+      var o = opts ? opts[i] : null, en = !!(o && o.enabled);
+      b.disabled = !en;
+      b.setAttribute("aria-pressed", en && i === cur ? "true" : "false");
+      b.innerHTML = names[i] + "<small>" + (o ? (i === 0 ? "전체 " : "") + o.n + "일" + (o.enabled && o.small ? " · 참고용" : "") : "–") + "</small>";
+      b.setAttribute("aria-label", names[i] + (o ? " (관측 " + o.n + "일" + (o.enabled && o.small ? ", 참고용" : "") + ")" : " (선택할 수 없음)"));
+    });
+    why.textContent = opts ? "" : groupName(g) + eunNeun(groupName(g)) + " 공연이 있었던 날이 " + g.n_perf_days + "일(관측 " + g.n_days + "일)뿐이라 공연 규모별로 나누지 않아요. 금·토·일에서 고를 수 있어요.";
+  }
+
   /* ---------- 결론 문장 ---------- */
   function range(a, b) { return a + "~" + b + "시"; }
   function tierPhrase(label) { return label.indexOf("공연 없음") === 0 ? "공연이 없던 날" : sh(label) + " 공연일"; }
@@ -711,15 +873,17 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
     var d = S.data, nm = groupName(g), html = "", meta = "";
     var small = function (n, short) { return P.isSmall(n) ? '<span class="badge">' + (short ? "" : "관측 " + n + "일, ") + '참고용</span>' : ""; };
     if (S.view === "visitor") {
-      var H = P.visitorHeadline(g, thrBoth());
+      var pr = sr.prof, H = P.visitorHeadline(pr, thrBoth());
+      if (pr.tier) nm = nm + " " + sh(pr.label) + " 공연일";
       if (H.calm) html = nm + eunNeun(nm) + " 9~18시 중 <strong>" + range(H.calm.from, H.calm.to) + "</strong>가 가장 한산하고, ";
       else html = nm + eunNeun(nm) + " ";
       if (H.busy) html += "<strong>" + range(H.busy.from, H.busy.to) + "</strong>가 가장 붐벼요.";
       else html = html.replace(/가 가장 한산하고, $/, "가 가장 한산해요. ") + "평소엔 붐빔 수준에 이르는 시간이 없어요.";
       if (H.relief && H.relief.kind === "after") html += " 나갈 땐 <strong>" + H.relief.from + "시</strong> 이후가 편해요.";
       else if (H.relief) html += " 나갈 땐 <strong>" + range(H.relief.from, H.relief.to) + "</strong>가 비교적 한산해요.";
-      meta = g.n_days < 20 ? nm + eunNeun(nm) + " 관측한 날이 " + g.n_days + "일뿐이라 거칠게 읽어 주세요." : "같은 유형의 " + g.n_days + "일을 합친 분포입니다.";
-      meta += small(g.n_days);
+      meta = pr.n_days < 20 ? nm + eunNeun(nm) + " 관측한 날이 " + pr.n_days + "일뿐이라 거칠게 읽어 주세요." : "같은 유형의 " + pr.n_days + "일을 합친 분포입니다.";
+      if (pr.tier) meta += " 공연 규모는 그날 관람객 수(시간별 최댓값) 구간으로 나눈 조건부 분포입니다.";
+      meta += small(pr.n_days);
     } else if (sr.cur) {
       var eveC = mean(sr.cur.cars_mean, 17, 21), op = P.peakHour(sr.cur.out_mean), cmp = "";
       if (sr.base) { var dE = Math.round(eveC - mean(sr.baseT.cars_mean, 17, 21)); cmp = "로, " + tierPhrase(sr.baseT.label) + "보다 " + Math.abs(dE).toLocaleString("ko-KR") + "대 " + (dE >= 0 ? "많았어요" : "적었어요"); }
@@ -739,7 +903,6 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
     var h = "";
     if (sr.tier) h = '<span><i class="lg-line"></i>' + sh(sr.cur.label) + ' 평균</span>' + (sr.base ? '<span><i class="lg-dash"></i>기준: ' + sh(sr.baseT.label) + '</span>' : "");
     else h = '<span><i class="lg-line"></i>' + sr.mainName + '</span><span><i class="lg-band"></i>대부분의 날</span>';
-    h += '<span><i class="lg-zone"></i>바탕이 짙을수록 붐빔</span><span><i class="lg-dash" style="border-top-color:#57554f"></i>점선: 위는 상위 3분의 1 수준(붐빔), 아래는 하위 3분의 1 수준(한산)</span>';
     $("legend").innerHTML = h;
   }
   function notes(sr, g) {
@@ -758,17 +921,33 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
   /* ---------- 차트(인라인 SVG) ---------- */
   var geo = null; // 마지막으로 그린 좌표계(포인터 → 시각 변환, 슬라이더 정렬에 쓴다)
   function esc(t) { return String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
-  function textW(str, fs) { var w = 0, i; for (i = 0; i < str.length; i++) w += str.charCodeAt(i) > 127 ? fs : fs * 0.58; return w; }
+  var measEl = null;
+  function textW(str, fs, weight) {
+    try {
+      if (!measEl) {
+        var sv = document.createElementNS(NS, "svg");
+        sv.setAttribute("aria-hidden", "true"); sv.setAttribute("focusable", "false");
+        sv.style.cssText = "position:absolute;left:-9999px;top:0;width:10px;height:10px;overflow:hidden";
+        measEl = document.createElementNS(NS, "text"); sv.appendChild(measEl); document.body.appendChild(sv);
+      }
+      measEl.style.cssText = "font-family:" + getComputedStyle(document.body).fontFamily + ";font-size:" + fs + "px;font-weight:" + (weight || 600);
+      measEl.textContent = str;
+      var w = measEl.getComputedTextLength();
+      if (w > 0) return w;
+    } catch (e) { /* 측정 실패 시 어림 */ }
+    var a = 0, i; for (i = 0; i < str.length; i++) a += str.charCodeAt(i) > 127 ? fs : fs * 0.62; return a;
+  }
 
   function drawChart() {
     var plot = $("plot"), svg = $("plot-svg"), W = plot.clientWidth;
     if (!S.data || S.view === "status" || W < 160) return;
-    var mobile = W < 520, Ht = mobile ? 300 : 360, ml = mobile ? 46 : 52, mr = mobile ? 38 : 132, mt = mobile ? 34 : 38, mb = 30;
-    var pw = W - ml - mr, ph = Ht - mt - mb, slot = pw / (H1 - H0);
+    var mobile = W < 520, ml = mobile ? 46 : 52, mr = mobile ? 38 : 132, mt = mobile ? 34 : 38, mb = 50;
+    var Ht = (mobile ? 300 : 360) + 20, pw = W - ml - mr, ph = Ht - mt - mb, slot = pw / (H1 - H0);
     var sr = series(), th = thr(), sc = P.niceScale(topOf(), 4), yMax = sc.top, visitor = S.view === "visitor";
     var X = function (h) { return ml + (h - H0) / (H1 - H0) * pw; };
     var Y = function (v) { return mt + ph * (1 - v / yMax); };
-    var s = "", i, h, v;
+    var s = "", h, obst = [];
+    var box = function (x, y, w, hh, kind) { obst.push({ x: x, y: y, w: w, h: hh, k: kind }); };
     // 바탕: 3분위 경계 위로 갈수록 짙게
     var y1 = Math.max(mt, Y(th[1])), y0 = Math.max(mt, Y(th[0]));
     s += '<rect x="' + ml + '" y="' + mt + '" width="' + pw + '" height="' + (y1 - mt).toFixed(1) + '" fill="#0c5e5b" fill-opacity=".14"/>';
@@ -779,76 +958,120 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
       s += '<line x1="' + ml + '" x2="' + (ml + pw) + '" y1="' + y + '" y2="' + y + '" stroke="' + (tv === 0 ? "#8a8575" : "#cfc9b9") + '" stroke-width="1"/>';
       s += '<text class="ax" x="' + (ml - 8) + '" y="' + y + '" text-anchor="end" dominant-baseline="central">' + tv.toLocaleString("ko-KR") + '</text>';
     });
-    // 세로 눈금(모바일은 3시간, 넓은 화면은 2시간 간격: 라벨 사이 44px 이상)
-    var step = slot * 2 >= 44 ? 2 : 3;
+    // 세로 눈금(라벨 사이 44px 이상이 되는 가장 촘촘한 간격)
+    var step = slot >= 44 ? 1 : slot * 2 >= 44 ? 2 : 3;
     for (h = H0; h <= H1; h += step) {
       s += '<line x1="' + X(h).toFixed(1) + '" x2="' + X(h).toFixed(1) + '" y1="' + (mt + ph) + '" y2="' + (mt + ph + 5) + '" stroke="#8a8575"/>';
-      s += '<text class="ax" x="' + X(h).toFixed(1) + '" y="' + (mt + ph + 20) + '" text-anchor="middle">' + h + '시</text>';
+      s += '<text class="ax" x="' + (h === H0 ? X(h) - 3 : h === H1 ? X(h) + 3 : X(h)).toFixed(1) + '" y="' + (mt + ph + 19) + '" text-anchor="' + (h === H0 ? "start" : h === H1 ? "end" : "middle") + '">' + h + '시</text>';
     }
-    // 가장 한산한 2시간(방문객)
-    var calm = null;
+    // 시간대별 상태 띠(평소 값의 한산·보통·붐빔을 글자와 진하기로 함께 표시)
+    var sy = mt + ph + 27, shh = 20, LV1 = { calm: "한", mid: "보", busy: "붐" }, FILL = { calm: "#d6eae7", mid: "#7fbcb7", busy: "#0c5e5b" };
+    s += '<text class="ax" x="' + (ml - 8) + '" y="' + (sy + shh / 2) + '" text-anchor="end" dominant-baseline="central" style="font-size:12px">상태</text>';
+    for (h = H0; h <= H1; h++) {
+      if (sr.main[h] == null) continue;
+      var lvh = level(sr.main[h]), cx0 = Math.max(ml, X(h) - slot / 2), cx1 = Math.min(ml + pw, X(h) + slot / 2);
+      s += '<rect class="st-cell" data-h="' + h + '" data-lv="' + lvh + '" x="' + cx0.toFixed(1) + '" y="' + sy + '" width="' + Math.max(0, cx1 - cx0 - 1).toFixed(1) + '" height="' + shh + '" fill="' + FILL[lvh] + '"/>';
+      if (cx1 - cx0 >= 13) s += '<text x="' + ((cx0 + cx1 - 1) / 2).toFixed(1) + '" y="' + (sy + shh / 2) + '" text-anchor="middle" dominant-baseline="central" style="font-size:12px;font-weight:700;fill:' + (lvh === "busy" ? "#ffffff" : "#0b2e2c") + '">' + LV1[lvh] + '</text>';
+    }
+    // 가장 한산한 2시간(방문객): 그림 위 여백에 라벨
     if (visitor) {
       var w = S.metric === "cars" ? P.minWindow(sr.main, 9, 17) : P.minWindow(sr.main, 14, 22);
       if (w) {
-        calm = { from: w.h, to: w.h + 2 };
-        var cx = X(w.h), cw = X(w.h + 2) - X(w.h), lab = (S.metric === "cars" ? (mobile ? "가장 한산 " : "9~18시 중 가장 한산 ") : (mobile ? "출차 한산 " : "출차가 가장 한산 ")) + calm.from + "~" + calm.to + "시";
+        var cx = X(w.h), cw = X(w.h + 2) - X(w.h), lab = (S.metric === "cars" ? (mobile ? "가장 한산 " : "9~18시 중 가장 한산 ") : (mobile ? "출차 한산 " : "출차가 가장 한산 ")) + w.h + "~" + (w.h + 2) + "시";
         s += '<rect x="' + cx.toFixed(1) + '" y="' + mt + '" width="' + cw.toFixed(1) + '" height="' + ph + '" fill="#d6eae7" fill-opacity=".9"/>';
-        var lw = textW(lab, 13), lx = Math.min(Math.max(cx + cw / 2 - lw / 2, ml), ml + pw - lw);
+        var lw = textW(lab, 13, 700), lx = Math.min(Math.max(cx + cw / 2 - lw / 2, ml), ml + pw - lw);
         s += '<text class="zl" x="' + lx.toFixed(1) + '" y="' + (mt - 10) + '" style="font-weight:700;fill:#0c5e5b">' + esc(lab) + '</text>';
       }
     }
     // 대부분의 날 띠
+    var path = function (arr) { var p = ""; for (h = H0; h <= H1; h++) { if (arr[h] == null) continue; p += (p ? "L" : "M") + X(h).toFixed(1) + " " + Y(arr[h]).toFixed(1); } return p; };
     if (sr.band) {
       var up = "", dn = "";
       for (h = H0; h <= H1; h++) { if (sr.band.hi[h] == null || sr.band.lo[h] == null) continue; up += (up ? "L" : "M") + X(h).toFixed(1) + " " + Y(sr.band.hi[h]).toFixed(1); }
       for (h = H1; h >= H0; h--) { if (sr.band.hi[h] == null || sr.band.lo[h] == null) continue; dn += "L" + X(h).toFixed(1) + " " + Y(sr.band.lo[h]).toFixed(1); }
       s += '<path d="' + up + dn + 'Z" fill="#0c5e5b" fill-opacity=".2" stroke="none"/>';
-      var edge = function (arr) { var p = ""; for (h = H0; h <= H1; h++) { if (arr[h] == null) continue; p += (p ? "L" : "M") + X(h).toFixed(1) + " " + Y(arr[h]).toFixed(1); } return p; };
-      s += '<path d="' + edge(sr.band.hi) + '" fill="none" stroke="#0c5e5b" stroke-opacity=".75" stroke-width="1"/><path d="' + edge(sr.band.lo) + '" fill="none" stroke="#0c5e5b" stroke-opacity=".75" stroke-width="1"/>';
+      s += '<path d="' + path(sr.band.hi) + '" fill="none" stroke="#0c5e5b" stroke-opacity=".75" stroke-width="1"/><path d="' + path(sr.band.lo) + '" fill="none" stroke="#0c5e5b" stroke-opacity=".75" stroke-width="1"/>';
     }
-    // 3분위 경계 점선과 오른쪽 여백의 라벨(데이터와 겹치지 않게 그림 밖에 둔다)
-    var zl = function (val, l1, l2) {
+    // 3분위 경계 점선과 오른쪽 여백의 라벨(그림 밖)
+    // 붐빔 경계의 라벨은 선 위쪽에, 한산 경계의 라벨은 선 아래쪽에 둔다(두 선이 가까워도 겹치지 않게).
+    var zl = function (val, lines, above) {
       var y = Y(val); if (y < mt || y > mt + ph) return "";
       var t = '<line x1="' + ml + '" x2="' + (ml + pw + 6) + '" y1="' + y.toFixed(1) + '" y2="' + y.toFixed(1) + '" stroke="#57554f" stroke-width="1.2" stroke-dasharray="6 4"/>';
-      t += '<text class="ax" x="' + (ml + pw + 10) + '" y="' + (l2 ? y - 3 : y) + '" ' + (l2 ? "" : 'dominant-baseline="central" ') + 'style="font-weight:700;fill:#1c1c1a">' + esc(l1) + '</text>';
-      if (l2) t += '<text class="ax" x="' + (ml + pw + 10) + '" y="' + (y + 13) + '">' + esc(l2) + '</text>';
+      lines.forEach(function (txt, i) {
+        var yy = above ? y - 5 - (lines.length - 1 - i) * 18 : y + 15 + i * 18;
+        t += '<text class="ax" x="' + (ml + pw + 10) + '" y="' + yy.toFixed(1) + '"' + (i === 0 ? ' style="font-weight:700;fill:#1c1c1a"' : "") + '>' + esc(txt) + '</text>';
+      });
       return t;
     };
-    s += mobile ? zl(th[1], "붐빔") + zl(th[0], "한산") : zl(th[1], "붐빔: 이 선 위", "상위 3분의 1 수준") + zl(th[0], "한산: 이 선 아래", "하위 3분의 1 수준");
-    // 기준 점선(운영자)
-    var path = function (arr) { var p = ""; for (h = H0; h <= H1; h++) { if (arr[h] == null) continue; p += (p ? "L" : "M") + X(h).toFixed(1) + " " + Y(arr[h]).toFixed(1); } return p; };
-    if (sr.base) s += '<path d="' + path(sr.base) + '" fill="none" stroke="#57554f" stroke-width="2.2" stroke-dasharray="7 5" stroke-linejoin="round"/>';
-    s += '<path d="' + path(sr.main) + '" fill="none" stroke="#0c5e5b" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>';
-    // 최대 시각 주석
-    var pk = P.peakHour(sr.main);
-    if (pk != null) {
-      var pt = "" + pk + "시 최대 " + sr.mainName + " " + fmt(sr.main[pk]) + "대", pwid = textW(pt, 13), px = Math.min(Math.max(X(pk) - pwid / 2, ml + 2), ml + pw - pwid - 2), py = Y(sr.main[pk]) - 14;
-      if (py < mt + 12) py = Y(sr.main[pk]) + 26;
-      s += '<circle cx="' + X(pk).toFixed(1) + '" cy="' + Y(sr.main[pk]).toFixed(1) + '" r="5" fill="#0c5e5b" stroke="#fbf8f1" stroke-width="2"/>';
-      s += '<text class="an" x="' + px.toFixed(1) + '" y="' + py.toFixed(1) + '">' + esc(pt) + '</text>';
-    }
-    // 선택·호버 표시
+    s += mobile ? zl(th[1], ["붐빔"], true) + zl(th[0], ["한산"], false) : zl(th[1], ["붐빔: 이 선 위", "상위 3분의 1 수준"], true) + zl(th[0], ["한산: 이 선 아래", "하위 3분의 1 수준"], false);
+    // 선: 기준 점선(운영자), 주 선, 붐빔 경계 위 구간은 굵게
+    var sample = function (arr) { for (h = H0; h < H1; h++) { if (arr[h] == null || arr[h + 1] == null) continue; for (var k = 0; k <= 4; k++) { var xx = X(h + k / 4), yy = Y(arr[h] + (arr[h + 1] - arr[h]) * k / 4); box(xx - 2, yy - 2, 4, 4, "line"); } } };
+    if (sr.base) { s += '<path d="' + path(sr.base) + '" fill="none" stroke="#57554f" stroke-width="2.2" stroke-dasharray="7 5" stroke-linejoin="round"/>'; sample(sr.base); }
+    s += '<clipPath id="busy-clip"><rect x="' + ml + '" y="' + (mt - 10) + '" width="' + pw + '" height="' + Math.max(0, Y(th[1]) - mt + 10).toFixed(1) + '"/></clipPath>';
+    s += '<path d="' + path(sr.main) + '" fill="none" stroke="#0c5e5b" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>';
+    s += '<path d="' + path(sr.main) + '" fill="none" stroke="#0c5e5b" stroke-width="6" stroke-linejoin="round" stroke-linecap="round" clip-path="url(#busy-clip)"/>';
+    sample(sr.main);
+    // 선택 표시, 도착·출발 핸들과 플래그
     var mark = function (hh, strong) {
       var vv = sr.main[hh]; if (vv == null) return "";
+      box(X(hh) - 3, mt, 6, ph, "mark"); box(X(hh) - 7, Y(vv) - 7, 14, 14, "mark");
       return '<line x1="' + X(hh).toFixed(1) + '" x2="' + X(hh).toFixed(1) + '" y1="' + mt + '" y2="' + (mt + ph) + '" stroke="#1c1c1a" stroke-width="' + (strong ? 2 : 1) + '" stroke-opacity="' + (strong ? 1 : .55) + '"/>' +
         '<circle cx="' + X(hh).toFixed(1) + '" cy="' + Y(vv).toFixed(1) + '" r="' + (strong ? 6 : 4.5) + '" fill="#1c1c1a" stroke="#fbf8f1" stroke-width="2"/>';
     };
-    var tipHour = S.hover != null ? S.hover : (visitor ? null : S.hour);
+    var tipHour = S.hover != null ? S.hover : (visitor ? null : S.hour), marks = "";
+    var flagBox = function (hh, txt, preferLeft) {
+      var fw = textW(txt, 13, 700) + 14, fx = preferLeft ? X(hh) - fw : X(hh);
+      if (fx < ml) fx = X(hh); if (fx + fw > ml + pw) fx = X(hh) - fw;
+      return { x: fx, w: fw };
+    };
     if (visitor) {
-      // 머무는 시간 띠와 도착·출발 핸들
-      s += '<rect x="' + X(S.arrive).toFixed(1) + '" y="' + (mt + ph - 4) + '" width="' + (X(S.depart) - X(S.arrive)).toFixed(1) + '" height="6" rx="3" fill="#1c1c1a"/>';
-      if (S.hover != null && S.hover !== S.arrive && S.hover !== S.depart) s += mark(S.hover, false);
-      var flag = function (hh, txt, preferLeft, row) {
-        var fw = textW(txt, 13) + 14, fx = preferLeft ? X(hh) - fw : X(hh), fy = mt + 6 + row * 28;
-        if (fx < ml) fx = X(hh); if (fx + fw > ml + pw) fx = X(hh) - fw;
-        return '<rect x="' + fx.toFixed(1) + '" y="' + fy + '" width="' + fw.toFixed(1) + '" height="24" rx="6" fill="#1c1c1a"/><text class="flag" x="' + (fx + 7).toFixed(1) + '" y="' + (fy + 16.5) + '">' + esc(txt) + '</text>';
-      };
-      s += mark(S.arrive, true) + mark(S.depart, true);
-      s += flag(S.arrive, "도착 " + S.arrive + "시", true, 0) + flag(S.depart, "출발 " + S.depart + "시", false, S.depart === S.arrive ? 1 : 0);
+      marks += '<rect x="' + X(S.arrive).toFixed(1) + '" y="' + (mt + ph - 4) + '" width="' + (X(S.depart) - X(S.arrive)).toFixed(1) + '" height="6" rx="3" fill="#1c1c1a"/>';
+      if (S.hover != null && S.hover !== S.arrive && S.hover !== S.depart) marks += mark(S.hover, false);
+      marks += mark(S.arrive, true) + mark(S.depart, true);
+      var ta = "도착 " + S.arrive + "시", td = "출발 " + S.depart + "시", fa = flagBox(S.arrive, ta, true), fd = flagBox(S.depart, td, false);
+      var rowD = (fd.x < fa.x + fa.w + 2 && fd.x + fd.w > fa.x - 2) ? 1 : 0; // 두 플래그가 겹치면 출발을 한 줄 아래로
+      [[fa, ta, 0], [fd, td, rowD]].forEach(function (f) {
+        var fy = mt + 6 + f[2] * 28;
+        box(f[0].x, fy, f[0].w, 24, "flag");
+        marks += '<rect x="' + f[0].x.toFixed(1) + '" y="' + fy + '" width="' + f[0].w.toFixed(1) + '" height="24" rx="6" fill="#1c1c1a"/><text class="flag" x="' + (f[0].x + 7).toFixed(1) + '" y="' + (fy + 16.5) + '">' + esc(f[1]) + '</text>';
+      });
     } else {
-      if (S.hover != null && S.hover !== S.hour) s += mark(S.hover, false);
-      if (S.hour != null) s += mark(S.hour, true);
+      if (S.hover != null && S.hover !== S.hour) marks += mark(S.hover, false);
+      if (S.hour != null) marks += mark(S.hour, true);
     }
+    // 최대 시각 주석: 후보 위치 중 선·마커·플래그와 겹치지 않는 첫 자리(없으면 가장 적게 겹치는 자리)
+    var pk = P.peakHour(sr.main), overlaps = 0, ann = "";
+    if (pk != null) {
+      var px0 = X(pk), py0 = Y(sr.main[pk]);
+      box(px0 - 6, py0 - 6, 12, 12, "peak");
+      var lineXs = obst.filter(function (o) { return o.k === "mark" && o.h === ph; }).map(function (o) { return o.x + 3; });
+      // lines: 라벨 줄 목록. 한 줄로 자리가 없으면 두 줄(시각 / 값)로 다시 찾는다.
+      var place = function (lines) {
+        var tw = Math.max.apply(null, lines.map(function (t) { return textW(t, 13); })), th2 = 19 + (lines.length - 1) * 16;
+        var xs = [px0 - tw / 2, px0 + 10, px0 - tw - 10, px0 - tw / 2 - 30, px0 - tw / 2 + 30], cands = [], best = null;
+        lineXs.forEach(function (lx2) { xs.push(lx2 + 8, lx2 - tw - 8); });
+        [-14 - (lines.length - 1) * 16, -34 - (lines.length - 1) * 16, 24, -54 - (lines.length - 1) * 16, 44, -74, 64, -94, 84, -114].forEach(function (dy) { xs.forEach(function (x) { cands.push([x, py0 + dy]); }); });
+        var hit = function (x, y) { var r = { x: x - 2, y: y - 14, w: tw + 4, h: th2 }, n = 0; obst.forEach(function (o) { if (r.x < o.x + o.w && r.x + r.w > o.x && r.y < o.y + o.h && r.y + r.h > o.y) n++; }); return n; };
+        cands.forEach(function (c) {
+          var x = c[0], y = c[1];
+          if (best && best.n === 0) return;
+          if (x < ml + 2 || x + tw > ml + pw - 2 || y - 14 < mt || y - 14 + th2 > mt + ph) return;
+          var n = hit(x, y);
+          if (best === null || n < best.n) best = { x: x, y: y, n: n };
+        });
+        if (!best) { var bx = Math.min(Math.max(px0 - tw / 2, ml + 2), ml + pw - tw - 2), by = Math.max(mt + 14, py0 - 14); best = { x: bx, y: by, n: hit(bx, by) }; }
+        best.lines = lines; return best;
+      };
+      var one = pk + "시 최대 " + (mobile ? "" : sr.mainName + " ") + fmt(sr.main[pk]) + "대";
+      var best = place([one]);
+      if (best.n > 0) { var two = place([pk + "시 최대", (mobile ? "" : sr.mainName + " ") + fmt(sr.main[pk]) + "대"]); if (two.n < best.n) best = two; }
+      overlaps = best.n;
+      ann = '<circle cx="' + px0.toFixed(1) + '" cy="' + py0.toFixed(1) + '" r="5" fill="#0c5e5b" stroke="#fbf8f1" stroke-width="2"/>' +
+        '<text class="an" x="' + best.x.toFixed(1) + '" y="' + best.y.toFixed(1) + '">' +
+        best.lines.map(function (t, i) { return '<tspan x="' + best.x.toFixed(1) + '" dy="' + (i ? 16 : 0) + '">' + esc(t) + '</tspan>'; }).join("") + '</text>';
+    }
+    s += ann + marks;
+    svg.setAttribute("data-overlaps", overlaps);
     svg.setAttribute("viewBox", "0 0 " + W + " " + Ht); svg.setAttribute("width", W); svg.setAttribute("height", Ht);
     svg.innerHTML = s;
     geo = { ml: ml, pw: pw, W: W };
@@ -971,7 +1194,7 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
     if (!mdl) { // 공연일 표본이 거의 없는 유형: 비활성화하고 이유를 보여 준다.
       range.disabled = true; range.min = 0; range.max = 1; range.value = 0;
       $("sim-val").textContent = "–"; $("sim-min").textContent = ""; $("sim-max").textContent = "";
-      out.innerHTML = "";
+      out.innerHTML = ""; $("sim-fold").hidden = true;
       range.removeAttribute("aria-valuetext");
       why.textContent = groupName(g) + eunNeun(groupName(g)) + " 공연이 " + (g.n_perf_days > 0 ? "있었던 날이 " + g.n_perf_days + "일뿐이라" : "있었던 날이 없어서") + " 관람객 수에 따른 변화를 계산하지 않아요. 금요일과 주말(토·일)에서만 쓸 수 있어요.";
       return;
@@ -986,14 +1209,18 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
     range.setAttribute("aria-valuetext", "관람객 " + S.sim.toFixed(1) + "천 명");
     $("sim-min").textContent = b.min.toFixed(1) + "천 명"; $("sim-max").textContent = b.max.toFixed(1) + "천 명";
     var r = P.predictEvening(mdl, S.sim), u = d.meta.uplift, grp = g.key === "fri" ? "금요일" : "주말(토·일)";
-    if (!r.ok) { out.innerHTML = ""; why.textContent = "이 값은 관측 범위 밖이라 계산하지 않아요."; return; }
+    if (!r.ok) { out.innerHTML = ""; $("sim-fold").hidden = true; why.textContent = "이 값은 관측 범위 밖이라 계산하지 않아요."; return; }
+    // 기본: 어림값·예측구간과 통제 추정 하나. 단순 회귀 기울기와 두 값이 다른 이유는 「계산 방식」 펼침으로 옮겼다.
     out.innerHTML =
       '<div class="result"><p class="big">저녁(17~21시) 평균 주차 차량 약 <b>' + fmt(r.yhat) + '대</b> <span class="sub" style="display:inline">(80% 예측구간 ' + fmt(r.lo) + '~' + fmt(r.hi) + '대)</span></p>' +
-      '<p class="sub">' + grp + ' 공연일 ' + mdl.n + '일(관람객 ' + mdl.x_min.toFixed(1) + '~' + mdl.x_max.toFixed(1) + '천 명)의 단순 회귀입니다. 관측 범위 안에서만 계산해요.</p></div>' +
-      '<ul><li>관람객 +1천 명당 저녁 평균 주차 차량, <b>단순 회귀</b> 약 <b>' + signed(mdl.slope) + '대</b> (95% 구간 ' + fmt(mdl.slope_ci95[0]) + '~' + fmt(mdl.slope_ci95[1]) + ', ' + grp + ' ' + mdl.n + '일, 다른 조건 통제 없음)</li>' +
-      '<li>요일·월·기온 편차를 <b>통제한 추정</b> 약 <b>' + signed(u.eve_cars_per_1k) + '대</b> (95% 구간 ' + u.eve_cars_ci[0] + '~' + u.eve_cars_ci[1] + ', 금요일·주말 ' + u.n_days + '일)</li></ul>' +
+      '<p class="sub">구간이 넓은 이유: 관람객 수가 같아도 날마다 저녁 주차가 달랐어요(관측 관계에서 벗어난 정도의 표준편차 약 ' + fmt(mdl.resid_sd) + '대, ' + grp + ' 공연일 ' + mdl.n + '일).</p></div>' +
+      '<p>요일·월·기온 편차를 <b>통제한 추정</b>: 관람객 +1천 명당 저녁 평균 주차 차량 약 <b>' + signed(u.eve_cars_per_1k) + '대</b> (95% 구간 ' + u.eve_cars_ci[0] + '~' + u.eve_cars_ci[1] + ', 금요일·주말 ' + u.n_days + '일)</p>';
+    $("sim-method").innerHTML =
+      '<p class="sub">위 어림값은 ' + grp + ' 공연일 ' + mdl.n + '일(관람객 ' + mdl.x_min.toFixed(1) + '~' + mdl.x_max.toFixed(1) + '천 명)의 단순 회귀입니다. 관측 범위 안에서만 계산해요.</p>' +
+      '<ul><li>관람객 +1천 명당 저녁 평균 주차 차량, <b>단순 회귀</b> 약 <b>' + signed(mdl.slope) + '대</b> (95% 구간 ' + fmt(mdl.slope_ci95[0]) + '~' + fmt(mdl.slope_ci95[1]) + ', ' + grp + ' ' + mdl.n + '일, 다른 조건 통제 없음)</li></ul>' +
       '<p class="sub">두 값이 조금 다른 이유: 앞의 값은 다른 조건을 통제하지 않은 단순 비교이고, 뒤의 값은 요일·월·기온 편차를 통제했으며 분석한 날도 조금 달라요(공휴일과 겹친 주말 포함).</p>' +
       '<p class="sub"><b>조건부 비교이며 공연이 원인이라는 뜻이 아닙니다.</b></p>';
+    $("sim-fold").hidden = false;
     why.textContent = "";
   }
 
@@ -1015,10 +1242,11 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
   function planResult() {
     var g = S.data.groups[S.g], m = S.data.meta, out = $("pl-out");
     var thr2 = { cars: m.cars_thresholds, out: m.out_thresholds };
-    var r = P.planVisit(g, thr2, S.arrive, S.depart, 2);
+    var pr = prof(), r = P.planVisit(pr, thr2, S.arrive, S.depart, 2);
+    var who = groupName(g) + (pr.tier ? " " + sh(pr.label) + " 공연일" : "");
     if (!r.ok) { out.innerHTML = "<p>" + (r.reason === "order" ? "출발 시각은 도착 시각과 같거나 늦어야 해요." : "이 시각은 자료가 없어요.") + "</p>"; return; }
     var h = '<p><b>' + S.arrive + '시 도착</b> · 주차 중인 차량 평소 <b>' + fmt(r.arrive.value) + '대</b> ' + lvTag(r.arrive.level) +
-      '<span class="sub">' + groupName(g) + ' ' + g.n_days + '일 중 대부분의 날 ' + fmt(r.arrive.p10) + '~' + fmt(r.arrive.p90) + '대</span></p>';
+      '<span class="sub">' + who + ' ' + pr.n_days + '일 중 대부분의 날 ' + fmt(r.arrive.p10) + '~' + fmt(r.arrive.p90) + '대</span></p>';
     h += r.altArrive
       ? '<p class="alt"><b>' + r.altArrive.hour + '시</b>에 도착하면 평소 약 <b>' + fmt(r.altArrive.diff) + '대</b> 적어요 (' + fmt(r.altArrive.value) + '대 ' + lvTag(P.levelOf(r.altArrive.value, thr2.cars)) + ')</p>'
       : '<p class="alt">도착 시각 앞뒤 ' + r.win + '시간 안에서는 이 시각이 이미 가장 한산해요.</p>';

@@ -30,15 +30,35 @@ def prof(sub, col, q=(0.1, 0.5, 0.9)):
     return out
 
 
+# 방문객 화면의 공연 규모 선택용: 금·토·일(비공휴일) 각 유형 안에서 규모별 시간대 분포(아래 TIERS 와 같은 구간)
+def group_tiers(sub):
+    res = []
+    for name, f in TIERS:
+        s = sub[f(sub["aud_day"])]
+        n = int(s["date"].nunique())
+        item = {"label": name, "n_days": n}
+        if n >= 1:
+            item["cars"] = prof(s, "cars")
+            item["out"] = prof(s, "outflow")
+        res.append(item)
+    return res
+
+
+# 공연 규모 구간 (일 관람객 최대값)
+TIERS = [("공연 없음", lambda a: a == 0), ("소규모(8천 명 미만)", lambda a: (a > 0) & (a < 8000)), ("중규모(8천~1.4만)", lambda a: (a >= 8000) & (a < 14000)), ("대규모(1.4만 이상)", lambda a: a >= 14000)]
+
+
 groups = []
 for i, (k, lab) in enumerate(zip(KEYS, LABELS)):
     sub = d[(d["dow"] == i) & (d["hol_day"] == 0)]
     groups.append({"key": k, "label": lab, "n_days": int(sub["date"].nunique()), "n_perf_days": int(sub.loc[sub["aud_day"] > 0, "date"].nunique()), "cars": prof(sub, "cars"), "out": prof(sub, "outflow"), "inflow": prof(sub, "inflow", q=(0.5,))})
+for g in groups:
+    if g["key"] in ("fri", "sat", "sun"):
+        i = KEYS.index(g["key"])
+        g["tiers"] = group_tiers(d[(d["dow"] == i) & (d["hol_day"] == 0)])
 sub = d[d["hol_day"] == 1]
 groups.append({"key": "hol", "label": "휴", "name": "공휴일·연휴", "n_days": int(sub["date"].nunique()), "n_perf_days": int(sub.loc[sub["aud_day"] > 0, "date"].nunique()), "cars": prof(sub, "cars"), "out": prof(sub, "outflow"), "inflow": prof(sub, "inflow", q=(0.5,))})
 
-# 공연 규모 구간 (일 관람객 최대값)
-TIERS = [("공연 없음", lambda a: a == 0), ("소규모(8천 명 미만)", lambda a: (a > 0) & (a < 8000)), ("중규모(8천~1.4만)", lambda a: (a >= 8000) & (a < 14000)), ("대규모(1.4만 이상)", lambda a: a >= 14000)]
 
 
 def tier_block(sub):
@@ -108,6 +128,7 @@ meta = {
     "uplift": {"eve_cars_per_1k": 59, "eve_cars_ci": [42, 75], "eve_out_per_1k": 69, "eve_out_ci": [38, 100], "n_days": 89,
                "note": "같은 요일 유형(금요일·주말) 안에서 일 관람객 +1천 명당 저녁 17~21시 평균 재차, 18~23시 출차 건수의 증분. 요일·월·기온 편차 통제, 조건부 증분이며 인과가 아님(report/perf_effect.md)."},
 }
+meta["group_tiers_note"] = "groups[금·토·일].tiers: 해당 요일(비공휴일) 분석일을 그날 관람객 수(시간별 최댓값) 구간(없음 0, 소 <8천, 중 8천~1.4만 미만, 대 1.4만 이상)으로 나눠 시각별 주차대수·출차의 10/50/90% 분위수와 평균을 계산. 표본 수 n_days 를 함께 싣는다."
 meta["sim_note"] = "금요일·주말(비공휴일) 공연일의 일 관람객 최댓값(천 명) → 저녁 17~21시 평균 주차대수 단순 OLS. 요일·월·기온 통제 없음. 구간은 예측구간(80%, t 분포)."
 # ---- 데이터 현황 탭용: 월별 입차 기록, 원천 중복, 검증 표, 결측 ----
 veh = pd.read_csv(ROOT / "data/interim/vehicles.csv.gz", usecols=["t_in"], parse_dates=["t_in"])
