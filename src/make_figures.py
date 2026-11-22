@@ -57,7 +57,7 @@ ax.grid(axis="x", visible=False)
 ax.text(12, 9.6, "12/7 이후\n기록 없음", ha="center", fontsize=9.5, color=INK2)
 from matplotlib.patches import Patch
 ax.legend(handles=[Patch(color=BLUE, label="분석에 사용한 달(1~7월·10월)"), Patch(color=GRAY, label="원천 기록이 거의 없어 제외한 달")], loc="upper left", frameon=False, fontsize=10)
-ax.set_title("월별 입차 기록 건수: 8~9월과 11~12월은 원천 자체가 비어 있다", loc="left")
+ax.set_title("월별 입차 기록 건수: 8~9월과 11~12월은 원천 기록이 크게 적다", loc="left")
 finish(fig, "fig1_data_coverage.png", SRC + " · 중복 제거 후 2,068,143건")
 
 # ---------- 그림 2: 재차 복원 검증 ----------
