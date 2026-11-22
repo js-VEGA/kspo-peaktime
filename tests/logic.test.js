@@ -253,4 +253,38 @@ t("parseHash: 범위 밖·형식 오류는 버림, 빈 입력 안전", () => {
   assert.strictEqual(L.parseHash("g=1.5&a=10.5", 8).g, undefined);
 });
 
+// ---- 리디자인: 차트 눈금·결론 문장 재료 ----
+t("niceScale: 1·2·2.5·5×10^k 간격, 최댓값을 덮고 0부터 시작", () => {
+  const a = L.niceScale(3606, 4); assert.strictEqual(a.step, 1000); assert.strictEqual(a.top, 4000); assert.strictEqual(JSON.stringify(a.ticks), "[0,1000,2000,3000,4000]");
+  const b = L.niceScale(1000, 4); assert.strictEqual(b.step, 250); assert.strictEqual(b.top, 1000);
+  const c = L.niceScale(1001, 4); assert(c.top >= 1001 && c.ticks.length <= 6);
+  assert.strictEqual(L.niceScale(0).top, 1);
+  for (let m = 1; m < 50000; m = Math.ceil(m * 1.37)) { const s = L.niceScale(m, 4); assert(s.top >= m && s.ticks[0] === 0 && s.ticks.length >= 2 && s.ticks.length <= 6, String(m)); }
+});
+t("peakHour·minWindow: 동률은 이른 시각, 빈 칸은 건너뜀", () => {
+  const a = Array(24).fill(1); a[10] = 5; a[12] = 5;
+  assert.strictEqual(L.peakHour(a), 10);
+  const b = Array(24).fill(10); b[11] = 1; b[12] = 1; b[14] = null;
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(L.minWindow(b, 9, 17))), { h: 11, s: 2 });
+  assert.strictEqual(L.minWindow(Array(24).fill(null), 9, 17), null);
+});
+t("busyRun: 최댓값 시각을 포함한 연속 붐빔 구간, 붐빔이 없으면 null", () => {
+  const th = [100, 200], a = Array(24).fill(50); a[14] = 250; a[15] = 300; a[16] = 210; a[17] = 150; a[9] = 220;
+  assert.strictEqual(JSON.stringify(L.busyRun(a, th, L.peakHour(a))), '{"from":14,"to":17}');
+  assert.strictEqual(L.busyRun(Array(24).fill(150), th, 10), null);
+});
+t("reliefAfter: 피크 뒤 끝까지 계속 한산인 첫 시각", () => {
+  const th = [100, 200], a = Array(24).fill(50); a[17] = 300; a[18] = 150; a[19] = 80; a[20] = 120; a[21] = 90;
+  assert.strictEqual(L.reliefAfter(a, th, 17), 21);
+  a[23] = 150; assert.strictEqual(L.reliefAfter(a, th, 17), null);
+});
+t("visitorHeadline: 모든 유형에서 구간이 시각 범위 안, 한산 구간은 9~18시", () => {
+  D.groups.forEach((g) => {
+    const h = L.visitorHeadline(g, thr);
+    assert(h.calm && h.calm.from >= 9 && h.calm.to <= 18 && h.calm.to - h.calm.from === 2, g.key);
+    if (h.busy) { assert(h.busy.from >= 5 && h.busy.to <= 24 && h.busy.from < h.busy.to); for (let x = h.busy.from; x < h.busy.to; x++) assert.strictEqual(L.levelOf(g.cars.p50[x], thr.cars), "busy"); }
+    assert(h.relief && (h.relief.kind === "after" ? h.relief.from > L.peakHour(g.out.p50) : h.relief.from >= 14 && h.relief.to <= 24), g.key);
+  });
+});
+
 console.log(n + "개 검증 통과" + (process.exitCode ? " (실패 있음)" : ""));
