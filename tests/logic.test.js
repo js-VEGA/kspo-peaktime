@@ -337,4 +337,45 @@ t("scenarios: 3개, 숫자는 JSON 값, 해시는 다시 읽으면 같은 상태
   assert.strictEqual(L.parseHash(sc[2].hash, 8).v, "operator");
 });
 
+// 다가오는 공연(KOPIS 스냅숏): 가짜 자료로 규칙 검증 + 실제 upcoming.json 형식 검증
+const UF = {
+  meta: { range: ["2026-11-22", "2027-03-31"], snapshot: "2026-11-22" },
+  halls: { A: { name: "큰 곳", n: 30, median: 15000, p: 3 }, B: { name: "작은 곳", n: 12, median: 3000, p: 1 }, C: { name: "표본 부족", n: 3, median: 9000, p: null } },
+  shows: [
+    { name: "큰 공연", hall: "A", from: "2026-12-04", to: "2026-12-06", days: [4, 5, 6] },
+    { name: "작은 공연", hall: "B", from: "2026-12-05", to: "2026-12-05", days: [5] },
+    { name: "요일 미상", hall: "C", from: "2026-12-01", to: "2026-12-31", days: null },
+    { name: "평일만", hall: "A", from: "2026-12-01", to: "2026-12-31", days: [0, 1, 2, 3] },
+  ],
+};
+t("showsOn: 공연 요일만, 요일 미상은 기간 표시, 범위 밖 표시", () => {
+  const sat = L.showsOn(UF, "2026-12-05"); // 토
+  assert.strictEqual(JSON.stringify(sat.shows.map((x) => x.show.name + ":" + x.on)), JSON.stringify(["큰 공연:day", "작은 공연:day", "요일 미상:period"]));
+  const tue = L.showsOn(UF, "2026-12-08"); // 화
+  assert.strictEqual(JSON.stringify(tue.shows.map((x) => x.show.name)), JSON.stringify(["요일 미상", "평일만"]));
+  assert.strictEqual(L.showsOn(UF, "2027-05-01").inRange, false);
+  assert.strictEqual(L.showsOn(UF, "2026-02-30"), null);
+  assert.strictEqual(L.showsOn(null, "2026-12-05"), null);
+});
+t("suggestTier: 표본 부족 공연장은 제안하지 않고, 여러 공연이면 가장 큰 제안", () => {
+  assert.strictEqual(L.suggestTier(UF, L.showsOn(UF, "2026-12-05").shows).p, 3);
+  assert.strictEqual(L.suggestTier(UF, L.showsOn(UF, "2026-12-08").shows).p, 3);
+  assert.strictEqual(L.suggestTier(UF, L.showsOn(UF, "2026-12-01").shows.filter((x) => x.show.hall === "C")), null);
+  assert.strictEqual(L.suggestTier(UF, []), null);
+});
+t("daysBetween·monthsText", () => {
+  assert.strictEqual(L.daysBetween("2026-11-22", "2026-11-29"), 7);
+  assert.strictEqual(L.daysBetween("2026-12-31", "2027-01-01"), 1);
+  assert.strictEqual(L.monthsText(Object.keys(D.meta.valid_days_by_month)), "1~7·10월");
+  assert.strictEqual(L.monthsText(["1", "2", "5"]), "1·2·5월");
+});
+t("upcoming.json 형식: 기준일·범위·출처, 공연장 제안은 표본 5 이상만", () => {
+  const U = JSON.parse(fs.readFileSync(path.join(root, "docs", "data", "upcoming.json"), "utf8"));
+  assert(/^\d{4}-\d{2}-\d{2}$/.test(U.meta.snapshot)); assert(U.meta.range[0] <= U.meta.range[1]);
+  assert(U.meta.source.indexOf("www.kopis.or.kr") >= 0);
+  Object.values(U.halls).forEach((h) => { if (h.p != null) assert(h.n >= 5 && h.p >= 1 && h.p <= 3); });
+  U.shows.forEach((s) => { assert(s.from <= s.to); assert(s.days === null || s.days.every((d) => d >= 0 && d <= 6)); });
+  assert(!/service|apikey|servicekey/i.test(JSON.stringify(U)));
+});
+
 console.log(n + "개 검증 통과" + (process.exitCode ? " (실패 있음)" : ""));

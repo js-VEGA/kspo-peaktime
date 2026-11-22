@@ -10,7 +10,7 @@
 <meta property="og:type" content="website">
 <meta property="og:locale" content="ko_KR">
 <meta property="og:title" content="올팍 피크타임 · 올림픽공원 주차 혼잡 안내">
-<meta property="og:description" content="언제 가야 덜 붐비고 언제 나가야 덜 막힐까? 공연 규모별 저녁 주차와 퇴장 시간대를 2025년 관측 분포로 보여 줍니다.">
+<meta property="og:description" content="언제 가야 덜 붐비고 언제 나가야 덜 막힐까? 공연 규모별 저녁 주차와 출차 시간대를 2025년 관측 분포로 보여 줍니다.">
 <meta property="og:url" content="https://js-vega.github.io/kspo-peaktime/">
 <meta property="og:image" content="https://js-vega.github.io/kspo-peaktime/og.png">
 <meta property="og:image:width" content="1200">
@@ -111,6 +111,15 @@ figure.chart { margin: 0; }
 #date-in:focus, #date-in:focus-within { outline: 3px solid var(--t3); outline-offset: 2px; }
 #date-in { min-height: 44px; padding: 0 10px; font: inherit; font-size: 16px; color: var(--ink); background: var(--paper); border: 1px solid var(--ctl); border-radius: 10px; }
 .date-info { flex: 1 1 100%; margin: 0; font-size: 14px; color: var(--ink-2); }
+.upc { margin: -6px 0 18px; padding: 12px 14px; background: var(--paper-2); border-radius: 10px; font-size: 14px; color: var(--ink-2); }
+.upc p { margin: 0 0 6px; }
+.upc p:last-child { margin-bottom: 0; }
+.upc ul { margin: 0 0 8px; padding-left: 18px; }
+.upc li { margin: 2px 0; color: var(--ink); }
+.upc li span { color: var(--ink-2); }
+.upc .upc-sug { color: var(--ink); }
+.upc .upc-warn { color: var(--ink); font-weight: 700; }
+.upc .upc-src { font-size: 13px; }
 .date-info b { color: var(--ink); }
 .seg.ptiers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--rule); width: 100%; max-width: 560px; }
 .seg.ptiers button { border: 0; background: var(--paper); line-height: 1.3; padding: 6px 4px; font-size: 15px; }
@@ -247,6 +256,7 @@ details.fold[open] summary::after { content: "−"; }
       <input type="date" id="date-in" min="2000-01-01" max="2099-12-31" aria-describedby="date-info">
       <p class="date-info" id="date-info" aria-live="polite"></p>
     </div>
+    <div class="upc" id="upc" hidden></div>
     <div class="pick" role="group" aria-label="요일 유형 선택">
       <div class="seg" id="days"></div>
       <div class="seg" id="days-hol"></div>
@@ -495,6 +505,38 @@ var PeakLogic = (function () {
   }
 
   function fmtN(v) { return Math.round(v).toLocaleString("ko-KR"); }
+
+  /* 다가오는 공연(KOPIS 스냅숏 upcoming.json). 날짜 str 에 걸치는 공연:
+     days(공연 요일, 월0…일6)가 있으면 그 요일만, 없으면(요일 해석 불가) 기간 안이면 on:'period'(이날 공연 여부 미확인). */
+  function showsOn(upc, str) {
+    var t = typeForDate(str);
+    if (!upc || !upc.shows || !t) return null;
+    var r = { inRange: str >= upc.meta.range[0] && str <= upc.meta.range[1], shows: [] };
+    upc.shows.forEach(function (sh) {
+      if (str < sh.from || str > sh.to) return;
+      if (sh.days == null) r.shows.push({ show: sh, on: "period" });
+      else if (sh.days.indexOf(t.dow) >= 0) r.shows.push({ show: sh, on: "day" });
+    });
+    return r;
+  }
+  // 그날 공연들의 공연장 중 규모 제안(p)이 있는 곳의 가장 큰 제안. 없으면 null.
+  function suggestTier(upc, list) {
+    var best = null;
+    (list || []).forEach(function (x) {
+      var h = upc && upc.halls ? upc.halls[x.show.hall] : null;
+      if (h && h.p && (!best || h.p > best.p)) best = { p: h.p, hall: x.show.hall, name: h.name, median: h.median, n: h.n };
+    });
+    return best;
+  }
+  function daysBetween(a, b) { // 'YYYY-MM-DD' 두 날짜의 차이(b - a, 일)
+    var pa = a.split("-"), pb = b.split("-");
+    return Math.round((Date.UTC(+pb[0], pb[1] - 1, +pb[2]) - Date.UTC(+pa[0], pa[1] - 1, +pa[2])) / 864e5);
+  }
+  function monthsText(keys) { // [1,2,3,4,5,6,7,10] → '1~7·10월'
+    var m = keys.map(Number).sort(function (a, b) { return a - b; }), out = [], i = 0, j;
+    while (i < m.length) { j = i; while (j + 1 < m.length && m[j + 1] === m[j] + 1) j++; out.push(j - i >= 2 ? m[i] + "~" + m[j] : j > i ? m[i] + "·" + m[j] : String(m[i])); i = j + 1; }
+    return out.join("·") + "월";
+  }
   /* 첫 화면 예시 3개. 숫자는 모두 data(JSON)에서 계산하고, hash 로 상태를 연다. */
   function scenarios(data) {
     var out = [], G = data.groups, i, h, best = null;
@@ -513,7 +555,7 @@ var PeakLogic = (function () {
     var ft = data.tiers.fri, ti = ft[3] && ft[3].n_days > 0 ? 3 : null;
     if (ti != null) {
       var o = ft[ti].out_mean, op = peakHour(o);
-      out.push({ id: "fri-exit", title: "금요일 저녁 퇴장", sub: "대규모 공연일 " + op + "시 시간당 평균 " + fmtN(o[op]) + "대 출차 · 관측 " + ft[ti].n_days + "일", hash: buildHash({ v: "operator", g: 4, m: "out", t: ti }), nums: [op, o[op], ft[ti].n_days] });
+      out.push({ id: "fri-exit", title: "금요일 저녁 출차", sub: "대규모 공연일 " + op + "시 시간당 평균 " + fmtN(o[op]) + "대 출차 · 관측 " + ft[ti].n_days + "일", hash: buildHash({ v: "operator", g: 4, m: "out", t: ti }), nums: [op, o[op], ft[ti].n_days] });
     }
     return out;
   }
@@ -605,7 +647,7 @@ var PeakLogic = (function () {
               H_MIN: H_MIN, H_MAX: H_MAX, isHour: isHour, levelOf: levelOf, planVisit: planVisit,
               modelFor: modelFor, sliderBounds: sliderBounds, clampToBounds: clampToBounds, predictEvening: predictEvening,
               SMALL_N: SMALL_N, isSmall: isSmall, HOLIDAYS_2026: HOLIDAYS_2026, groupIndexForDate: groupIndexForDate,
-              buildHash: buildHash, parseHash: parseHash };
+              buildHash: buildHash, parseHash: parseHash, showsOn: showsOn, suggestTier: suggestTier, daysBetween: daysBetween, monthsText: monthsText };
   return api;
 })();
 if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogic; }
@@ -615,7 +657,7 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
   "use strict";
   var P = PeakLogic;
   var H0 = 5, H1 = 23;
-  var S = { data: null, view: "visitor", g: 0, tier: 0, metric: "cars", hour: null, hover: null, arrive: 10, depart: 16, sim: null, date: null, p: 0 };
+  var S = { data: null, view: "visitor", g: 0, tier: 0, metric: "cars", hour: null, hover: null, arrive: 10, depart: 16, sim: null, date: null, p: 0, upc: null, pAuto: false };
   var $ = function (id) { return document.getElementById(id); };
   var fmt = function (v) { return v == null ? "–" : Math.round(v).toLocaleString("ko-KR"); };
   var LV = { calm: "한산", mid: "보통", busy: "붐빔" };
@@ -635,9 +677,12 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
     b.focus();
   }
   function load() {
+    // 다가오는 공연(upcoming.json)은 없어도 화면이 동작한다(실패하면 null)
+    var upc = fetch("data/upcoming.json", { cache: "no-cache" }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
     fetch("data/peaktime_2025.json", { cache: "no-cache" })
       .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
-      .then(function (d) { clearError(); S.data = d; if (!initialized) { initialized = true; init(); } })
+      .then(function (d) { return upc.then(function (u) { return [d, u]; }); })
+      .then(function (du) { clearError(); S.data = du[0]; S.upc = du[1] && du[1].shows ? du[1] : null; if (!initialized) { initialized = true; init(); } })
       .catch(function () {
         var local = location.protocol === "file:";
         showError(local
@@ -679,6 +724,14 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
     if (!t) return false;
     S.date = str; S.g = t.g; return true;
   }
+  // 날짜의 KOPIS 공연 → 공연 규모 미리 선택(사용자가 바꿀 수 있음). 이전 자동 선택은 지운다.
+  function autoTier() {
+    if (S.pAuto) S.p = 0;
+    S.pAuto = false;
+    if (!S.upc || !S.date) return;
+    var opts = P.tierOptions(S.data.groups[S.g]), r = P.showsOn(S.upc, S.date), sg = r ? P.suggestTier(S.upc, r.shows) : null;
+    if (opts && sg && opts[sg.p] && opts[sg.p].enabled) { S.p = sg.p; S.pAuto = true; }
+  }
   // 세로축은 모든 유형을 같은 눈금으로 비교할 수 있도록 지표별 전체 최댓값을 쓴다.
   function topOf() {
     var top = 0, m = S.metric;
@@ -694,7 +747,7 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
       var b = document.createElement("button");
       b.type = "button"; b.textContent = g.key === "hol" ? "공휴일·연휴" : g.label;
       b.setAttribute("aria-label", groupName(g) + " (관측 " + g.n_days + "일" + (P.isSmall(g.n_days) ? ", 참고용" : "") + ")");
-      b.addEventListener("click", function () { S.g = i; S.date = null; S.tier = defaultTier(); S.sim = null; S.hour = null; S.hover = null; render(); });
+      b.addEventListener("click", function () { S.g = i; S.date = null; if (S.pAuto) { S.p = 0; S.pAuto = false; } S.tier = defaultTier(); S.sim = null; S.hour = null; S.hover = null; render(); });
       (g.key === "hol" ? hol : days).appendChild(b);
     });
     var tabs = [$("tab-visitor"), $("tab-operator"), $("tab-status")], views = ["visitor", "operator", "status"];
@@ -720,14 +773,14 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
     $("pl-arrive").addEventListener("input", function () { setHandle("arrive", parseInt(this.value, 10)); renderPlan(); });
     $("pl-depart").addEventListener("input", function () { setHandle("depart", parseInt(this.value, 10)); renderPlan(); });
     $("date-in").addEventListener("change", function () {
-      if (this.value && setDate(this.value)) { S.tier = defaultTier(); S.sim = null; S.hour = null; S.hover = null; }
-      else if (!this.value) S.date = null;
+      if (this.value && setDate(this.value)) { S.tier = defaultTier(); S.sim = null; S.hour = null; S.hover = null; autoTier(); }
+      else if (!this.value) { S.date = null; if (S.pAuto) { S.p = 0; S.pAuto = false; } }
       render();
     });
     var pt = $("ptiers");
     ["모름", "소규모", "중규모", "대규모"].forEach(function (lab, i) {
       var b = document.createElement("button"); b.type = "button"; b.setAttribute("data-p", i);
-      b.addEventListener("click", function () { S.p = i; S.hour = null; S.hover = null; render(); });
+      b.addEventListener("click", function () { S.p = i; S.pAuto = false; S.hour = null; S.hover = null; render(); });
       pt.appendChild(b);
     });
     var ex = $("examples");
@@ -756,6 +809,8 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
     else if (q.g != null) S.g = q.g;
     else if (!setDate(P.todayString(new Date()))) { var gi = P.groupIndexForDate(new Date()); S.g = gi == null ? 0 : gi; }
     S.p = q.p != null ? q.p : 0;
+    S.pAuto = false;
+    if (q.p == null) autoTier(); // 해시에 규모가 없으면 그날 KOPIS 공연으로 미리 고른다
     S.tier = defaultTier();
     var tl = tierList();
     if (q.t != null && tl && tl[q.t] && tl[q.t].n_days > 0) S.tier = q.t; // 관측일이 없는 규모는 무시
@@ -837,7 +892,7 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
     var sr = series();
     headline(sr, g);
     var mname = S.metric === "cars" ? "주차 중인 차량" : "시간당 출차";
-    $("chart-title").textContent = groupName(g) + " · " + mname + " (5시~23시)";
+    $("chart-title").textContent = (!visitor && tierList() && tierKey(g) === "weekend" ? "토·일요일" : groupName(g)) + " · " + mname + " (5시~23시)";
     legend(sr);
     // 차트 요약(대체 텍스트): 화면의 차트 제목 + 결론 문장. 값 전체는 sr-table
     $("chart-sum").textContent = $("chart-title").textContent + ". " + $("headline").textContent + " 시각별 값은 아래 표에 있습니다.";
@@ -859,8 +914,36 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
     if (t) {
       html = "<b>" + t.date + "(" + DOW[t.dow] + ")</b> → <b>" + groupName(g) + " 유형</b>";
       if (!t.covered) html += " · 이 해는 공휴일 자료가 없어 요일로만 판정했어요";
+      var mo = +t.date.slice(5, 7), vm = S.data.meta.valid_days_by_month;
+      if (!vm[mo]) html += " · " + mo + "월은 2025년 원천 기록이 비어 분석에서 빠진 달이라 다른 달(" + P.monthsText(Object.keys(vm)) + ") 분포로 안내해요. 계절 차이는 반영하지 못해요";
     } else html = "요일을 직접 골랐어요. 날짜를 고르면 요일·공휴일 유형을 자동으로 정해요";
     info.innerHTML = html + ". 2025년 관측 분포 기반 안내입니다.";
+    renderUpcoming(g, t);
+  }
+  var PN = ["모름", "소규모", "중규모", "대규모"];
+  function renderUpcoming(g, t) {
+    var box = $("upc"), u = S.upc;
+    if (!u || !t || S.view !== "visitor") { box.hidden = true; box.innerHTML = ""; return; }
+    var r = P.showsOn(u, t.date), h = "", m = u.meta;
+    h += "<p><b>이날 올림픽공원 공연</b> · KOPIS 일정(기준일 " + m.snapshot + ")</p>";
+    if (!r.inRange) h += "<p>이 날짜는 일정 자료 범위(" + m.range[0] + " ~ " + m.range[1] + ") 밖이에요.</p>";
+    else if (!r.shows.length) h += "<p>KOPIS 일정에 이날 올림픽공원 공연이 없어요.</p>";
+    else {
+      h += "<ul>" + r.shows.map(function (x) {
+        var s = x.show;
+        return "<li><b>" + esc(s.name) + "</b> <span>· " + esc(s.hall_name) + " · " + s.from.slice(5).replace("-", "/") + "~" + s.to.slice(5).replace("-", "/") + (x.on === "period" ? " · 공연 기간 중(이날 공연 여부 미확인)" : "") + "</span></li>";
+      }).join("") + "</ul>";
+      var sg = P.suggestTier(u, r.shows);
+      if (sg && S.pAuto && S.p === sg.p)
+        h += '<p class="upc-sug">2025년 ' + esc(sg.name) + " 단독 공연일 " + sg.n + "일의 일 관람객(시간별 최댓값) 중앙값이 " + fmt(sg.median) + "명이라 공연 규모를 <b>'" + PN[sg.p] + "'</b>로 미리 골랐어요. 아래에서 바꿀 수 있어요.</p>";
+      else if (sg && !P.tierOptions(g)) h += "<p>" + groupName(g) + eunNeun(groupName(g)) + " 공연 규모별로 나누지 않아 규모는 고르지 않았어요.</p>";
+      else if (!sg) h += "<p>이 공연장은 2025년 단독 공연일이 5일 미만이라 공연 규모를 제안하지 않아요.</p>";
+    }
+    h += "<p>일정 정보가 없는 날은 공연이 없다는 뜻이 아닙니다. 실제 관람객은 다를 수 있습니다.</p>";
+    var age = P.daysBetween(m.snapshot, P.todayString(new Date()));
+    if (age > 7) h += '<p class="upc-warn">일정 자료가 ' + age + "일 전(" + m.snapshot + ") 기준이라 바뀌었을 수 있어요.</p>";
+    h += '<p class="upc-src">출처: (재)예술경영지원센터 공연예술통합전산망(www.kopis.or.kr)</p>';
+    box.innerHTML = h; box.hidden = false;
   }
   function renderPTiers(g, visitor) {
     var wrap = $("ptier-wrap"), opts = P.tierOptions(g), why = $("ptier-reason"), names = ["모름", "소규모", "중규모", "대규모"];
@@ -886,21 +969,22 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
     if (S.view === "visitor") {
       var pr = sr.prof, H = P.visitorHeadline(pr, thrBoth());
       if (pr.tier) nm = nm + " " + sh(pr.label) + " 공연일";
-      if (H.calm) html = nm + eunNeun(nm) + " 9~18시 중 <strong>" + range(H.calm.from, H.calm.to) + "</strong>가 가장 한산하고, ";
+      if (H.calm) html = nm + eunNeun(nm) + " 9~18시 중 <strong>" + range(H.calm.from, H.calm.to) + "</strong>가 가장 덜 붐비고, ";
       else html = nm + eunNeun(nm) + " ";
       if (H.busy) html += "<strong>" + range(H.busy.from, H.busy.to) + "</strong>가 가장 붐벼요.";
-      else html = html.replace(/가 가장 한산하고, $/, "가 가장 한산해요. ") + "평소엔 붐빔 수준에 이르는 시간이 없어요.";
+      else html = html.replace(/가 가장 덜 붐비고, $/, "가 가장 덜 붐벼요. ") + "평소엔 붐빔 수준에 이르는 시간이 없어요.";
       if (H.relief && H.relief.kind === "after") html += " 나갈 땐 <strong>" + H.relief.from + "시</strong> 이후가 편해요.";
       else if (H.relief) html += " 나갈 땐 <strong>" + range(H.relief.from, H.relief.to) + "</strong>가 비교적 한산해요.";
       meta = pr.n_days < 20 ? nm + eunNeun(nm) + " 관측한 날이 " + pr.n_days + "일뿐이라 거칠게 읽어 주세요." : "같은 유형의 " + pr.n_days + "일을 합친 분포입니다.";
       if (pr.tier) meta += " 공연 규모는 그날 관람객 수(시간별 최댓값) 구간으로 나눈 조건부 분포입니다.";
       meta += small(pr.n_days);
     } else if (sr.cur) {
+      if (tierKey(g) === "weekend") nm = "토·일요일"; // 운영자 규모 비교는 토·일을 합친 자료
       var eveC = mean(sr.cur.cars_mean, 17, 21), op = P.peakHour(sr.cur.out_mean), cmp = "";
       if (sr.base) { var dE = Math.round(eveC - mean(sr.baseT.cars_mean, 17, 21)); cmp = "로, " + tierPhrase(sr.baseT.label) + "보다 " + Math.abs(dE).toLocaleString("ko-KR") + "대 " + (dE >= 0 ? "많았어요" : "적었어요"); }
       else cmp = " (비교 기준 규모)";
       html = nm + " " + tierPhrase(sr.cur.label) + " " + sr.cur.n_days + "일의 저녁(17~21시) 평균 주차 차량은 <strong>" + fmt(eveC) + "대</strong>" + cmp + (sr.base ? "." : "예요.") +
-        " 퇴장은 <strong>" + op + "시</strong>에 시간당 평균 " + fmt(sr.cur.out_mean[op]) + "대로 가장 몰렸어요.";
+        " 출차는 <strong>" + op + "시</strong>에 시간당 평균 " + fmt(sr.cur.out_mean[op]) + "대로 가장 많았어요.";
       meta = "같은 요일 유형 날들의 평균 비교 · 관측 " + sr.cur.n_days + "일" + small(sr.cur.n_days, true) + " · 공연 관람객 일 최대 중앙값 " + (sr.cur.aud_median ? sr.cur.aud_median.toLocaleString("ko-KR") + "명" : "–");
     } else {
       var a = sr.main, eve = mean(a, 17, 21), pk = P.peakHour(a);
@@ -988,7 +1072,7 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
     if (visitor) {
       var w = S.metric === "cars" ? P.minWindow(sr.main, 9, 17) : P.minWindow(sr.main, 14, 22);
       if (w) {
-        var cx = X(w.h), cw = X(w.h + 2) - X(w.h), lab = (S.metric === "cars" ? (mobile ? "가장 한산 " : "9~18시 중 가장 한산 ") : (mobile ? "출차 한산 " : "출차가 가장 한산 ")) + w.h + "~" + (w.h + 2) + "시";
+        var cx = X(w.h), cw = X(w.h + 2) - X(w.h), lab = (S.metric === "cars" ? (mobile ? "덜 붐빔 " : "9~18시 중 가장 덜 붐빔 ") : (mobile ? "출차 한산 " : "출차가 가장 한산 ")) + w.h + "~" + (w.h + 2) + "시";
         s += '<rect x="' + cx.toFixed(1) + '" y="' + mt + '" width="' + cw.toFixed(1) + '" height="' + ph + '" fill="#d6eae7" fill-opacity=".9"/>';
         var lw = textW(lab, 13, 700), lx = Math.min(Math.max(cx + cw / 2 - lw / 2, ml), ml + pw - lw);
         s += '<text class="zl" x="' + lx.toFixed(1) + '" y="' + (mt - 10) + '" style="font-weight:700;fill:#0c5e5b">' + esc(lab) + '</text>';
