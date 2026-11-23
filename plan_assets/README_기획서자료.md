@@ -51,7 +51,7 @@
 | figures/fig4_tier_curves.png | 공연 규모가 클수록 같은 요일의 저녁 주차대수가 높다 | 2-2(차별점), 3 |
 | figures/fig5_audience_vs_evening.png | 관람객 +1천 명당 저녁 주차 약 +59대(조건부) | 2-2, 3 |
 | figures/fig2_reconstruction_check.png | 입출차로 복원한 재차와 기관 값의 일치(상관 0.983) | 2-2(공공데이터 가공·검증) |
-| figures/fig1_data_coverage.png | 월별 입차 기록: 8~9월·11~12월은 원천이 비어 있음 | 2-2, 5(추가 개방 의견) |
+| figures/fig1_data_coverage.png | 월별 입차 기록: 8~9월·11~12월은 원천 기록이 크게 적음 | 2-2, 5(추가 개방 의견) |
 | figures/fig6_validation.png | 월 단위 롤링 검증 결과 | 3(신뢰성), 5 |
 | screens/screen1_visitor_sat.png | 방문객 화면(토요일) | 1-2, 1-3 |
 | screens/screen2_operator_sat_cars.png | 운영자 화면: 토요일 대규모 공연 시 주차 차량 | 1-2, 1-3 |

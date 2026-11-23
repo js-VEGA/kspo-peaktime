@@ -122,7 +122,7 @@ monthly = d.groupby(d["date"].dt.month)["date"].nunique()
 meta = {
     "period": "2025-01-01~2025-07-30, 2025-10-01~2025-10-30 (월 말일 제외)",
     "valid_days": int(d["date"].nunique()), "valid_days_by_month": {int(k): int(v) for k, v in monthly.items()},
-    "unusable": "2025-07-31~09-30과 11월 이후는 원천 입출차 기록이 거의 없어 제외",
+    "unusable": "8~9월과 11~12월은 원천 입차 기록이 크게 적어 제외(10월 건수의 21~26%, 11월은 11/7 06시·12월은 12/7 16시까지만 기록), 매월 말일(7/31 포함)은 기록이 없어 제외",
     "cars_thresholds": cars_t, "out_thresholds": out_t,
     "validation": val,
     "uplift": {"eve_cars_per_1k": 59, "eve_cars_ci": [42, 75], "eve_out_per_1k": 69, "eve_out_ci": [38, 100], "n_days": 89,

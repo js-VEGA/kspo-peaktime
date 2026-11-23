@@ -387,4 +387,14 @@ t("upcoming.json 형식: 기준일·범위·출처, 공연장 제안은 표본 5
   assert(!/service|apikey|servicekey/i.test(JSON.stringify(U)));
 });
 
+t("제외한 달 문구: 10월 대비 비율·마지막 기록일은 JSON에서, '비어'·'거의 없어' 표현 없음", () => {
+  const C = D.coverage;
+  assert.strictEqual(L.gapNote(C, 8), "입차 건수가 10월의 24%");
+  assert.strictEqual(L.gapNote(C, 9), "입차 건수가 10월의 26%");
+  assert.strictEqual(L.gapNote(C, 11), "초순까지만 있고 입차 건수가 10월의 21%");
+  assert.strictEqual(L.gapNote(C, 12), "7일까지만 있고 입차 건수가 10월의 24%");
+  assert.strictEqual(L.gapSummary(C, [8, 9, 11, 12]), "입차 건수가 10월의 21~26%, 11월은 초순까지만·12월은 7일까지만 있음");
+  assert(!/기록이 비어 분석|기록이 거의 없|원천 기록이 거의/.test(html));
+  assert(!/거의 없|비어/.test(D.meta.unusable));
+});
 console.log(n + "개 검증 통과" + (process.exitCode ? " (실패 있음)" : ""));

@@ -355,7 +355,7 @@ details.fold[open] summary::after { content: "−"; }
         <h3>한계</h3>
         <ul>
           <li>2025년 <b id="lim-months">1~7월·10월</b>(<span id="lim-days">235</span>일)의 관측 분포입니다. 앞날을 맞히는 예측값이 아니라, 같은 유형의 날이 어땠는지를 보여 줍니다.</li>
-          <li>7월 31일~9월 30일과 11월 이후는 원천 입출차 기록이 거의 없어 뺐습니다. 매월 말일도 기록이 비어 제외했습니다. 계절 변화는 한 해 자료라 배울 수 없습니다.</li>
+          <li>8~9월과 11~12월은 원천 입차 기록이 크게 적어(10월의 4분의 1 안팎, 11월은 초순, 12월은 7일까지만 있음) 분석에서 뺐습니다. 매월 말일(7월 31일 포함)은 기록이 없어 제외했습니다. 계절 변화는 한 해 자료라 배울 수 없습니다.</li>
           <li>'주차 중인 차량'은 기관 시간표의 주차대수입니다. '시간당 출차'는 입출차 기록에 남은 차량만 센 값이라 실제보다 적을 수 있습니다. 출차시간이 빈 행이 없어 아직 나가지 않은 차량은 기록에 없는 것으로 보입니다.</li>
           <li>한산·보통·붐빔은 이 자료 안에서의 상대 비교(3분위)이며 공식 혼잡도나 주차 가능 대수가 아닙니다.</li>
           <li>기관 자료에서 주말은 전부 공연일로 표시돼 '공연이 있는 날'과 '없는 날'을 주말끼리 비교할 수 없습니다. 그래서 같은 요일 유형 안에서 <b>관람객 규모</b>에 따른 차이만 보여 줍니다. 이 차이는 조건부 비교이며 공연이 원인이라는 뜻이 아닙니다.</li>
@@ -543,6 +543,24 @@ var PeakLogic = (function () {
     while (i < m.length) { j = i; while (j + 1 < m.length && m[j + 1] === m[j] + 1) j++; out.push(j - i >= 2 ? m[i] + "~" + m[j] : j > i ? m[i] + "·" + m[j] : String(m[i])); i = j + 1; }
     return out.join("·") + "월";
   }
+  /* 분석에서 뺀 달의 사유 문구. 비율은 coverage.monthly_inflow(중복 제거 후 월별 입차)의 10월 대비, 마지막 기록일은 coverage.last_in 에서 계산한다.
+     11월 '초순'은 2025년 원천(11/7 06시까지 기록)을 확인해 적은 표현이다(report/23_wording_fix.md). */
+  function gapPct(cov, mo) { var n = cov.monthly_inflow; return Math.round(n[mo] / n[10] * 100); }
+  function gapEnd(cov, mo) {
+    var d = cov.last_in.slice(0, 10).split("-");
+    if (+d[1] === mo) return +d[2] + "일까지만";
+    if (mo === 11 && +d[1] === 12) return "초순까지만";
+    return "";
+  }
+  function gapNote(cov, mo) { // 12 → '7일까지만 있고 입차 건수가 10월의 24%'
+    var e = gapEnd(cov, mo);
+    return (e ? e + " 있고 " : "") + "입차 건수가 10월의 " + gapPct(cov, mo) + "%";
+  }
+  function gapSummary(cov, months) { // [8,9,11,12] → '입차 건수가 10월의 21~26%, 11월은 초순까지만·12월은 7일까지만 있음'
+    var p = months.map(function (m) { return gapPct(cov, m); }), lo = Math.min.apply(null, p), hi = Math.max.apply(null, p);
+    var ends = months.filter(function (m) { return gapEnd(cov, m); }).map(function (m) { return m + "월은 " + gapEnd(cov, m); });
+    return "입차 건수가 10월의 " + (lo === hi ? lo : lo + "~" + hi) + "%" + (ends.length ? ", " + ends.join("·") + " 있음" : "");
+  }
   /* 첫 화면 예시 3개. 숫자는 모두 data(JSON)에서 계산하고, hash 로 상태를 연다. */
   function scenarios(data) {
     var out = [], G = data.groups, i, h, best = null;
@@ -653,7 +671,7 @@ var PeakLogic = (function () {
               H_MIN: H_MIN, H_MAX: H_MAX, isHour: isHour, levelOf: levelOf, planVisit: planVisit,
               modelFor: modelFor, sliderBounds: sliderBounds, clampToBounds: clampToBounds, predictEvening: predictEvening,
               SMALL_N: SMALL_N, isSmall: isSmall, HOLIDAYS_2026: HOLIDAYS_2026, groupIndexForDate: groupIndexForDate,
-              buildHash: buildHash, parseHash: parseHash, showsOn: showsOn, suggestTier: suggestTier, daysBetween: daysBetween, monthsText: monthsText, scheduleNote: scheduleNote, NOTE_OLD_DAYS: NOTE_OLD_DAYS };
+              buildHash: buildHash, parseHash: parseHash, showsOn: showsOn, suggestTier: suggestTier, daysBetween: daysBetween, monthsText: monthsText, gapNote: gapNote, gapSummary: gapSummary, scheduleNote: scheduleNote, NOTE_OLD_DAYS: NOTE_OLD_DAYS };
   return api;
 })();
 if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogic; }
@@ -921,7 +939,7 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
       html = "<b>" + t.date + "(" + DOW[t.dow] + ")</b> → <b>" + groupName(g) + " 유형</b>";
       if (!t.covered) html += " · 이 해는 공휴일 자료가 없어 요일로만 판정했어요";
       var mo = +t.date.slice(5, 7), vm = S.data.meta.valid_days_by_month;
-      if (!vm[mo]) html += " · " + mo + "월은 2025년 원천 기록이 비어 분석에서 빠진 달이라 다른 달(" + P.monthsText(Object.keys(vm)) + ") 분포로 안내해요. 계절 차이는 반영하지 못해요";
+      if (!vm[mo]) html += " · " + mo + "월은 2025년 원천 기록이 크게 적어(" + P.gapNote(S.data.coverage, mo) + ") 분석에서 뺀 달이라 다른 달(" + P.monthsText(Object.keys(vm)) + ") 분포로 안내해요. 계절 차이는 반영하지 못해요";
     } else html = "요일을 직접 골랐어요. 날짜를 고르면 요일·공휴일 유형을 자동으로 정해요";
     info.innerHTML = html + ". 2025년 관측 분포 기반 안내입니다.";
     renderUpcoming(g, t);
@@ -1259,7 +1277,7 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
         (use ? "사용" : "제외" + (i === lastMonth ? " (" + lastMonth + "/" + lastDay + "까지)" : "")) + '</td></tr>';
     }
     $("st-months").innerHTML = rows;
-    $("st-m-hint").textContent = "입출차 원천 기록(중복 제거 후)의 월별 입차 건수입니다. 진한 청록 막대는 분석에 쓴 달, 회색은 기록이 거의 없어 뺀 달이에요. 분석한 날은 모두 " + m.valid_days + "일입니다(매월 말일은 기록이 비어 제외).";
+    $("st-m-hint").textContent = "입출차 원천 기록(중복 제거 후)의 월별 입차 건수입니다. 진한 청록 막대는 분석에 쓴 달, 회색은 기록이 크게 적어(" + P.gapSummary(c, excluded) + ") 뺀 달이에요. 분석한 날은 모두 " + m.valid_days + "일입니다(매월 말일은 기록이 없어 제외).";
     var pct = function (x) { return (x * 100).toFixed(1); };
     $("st-dup").innerHTML =
       "<li>원천 " + c.raw_rows.toLocaleString("ko-KR") + "행 → 중복 제거 후 <b>" + c.unique_rows.toLocaleString("ko-KR") + "건</b> (원천 중복 <b>" + pct(c.dup_rate) + "%</b>, 같은 ID·내용의 행)</li>" +
@@ -1275,7 +1293,7 @@ if (typeof module !== "undefined" && module.exports) { module.exports = PeakLogi
     $("st-v-note").textContent = "달력 모델의 80% 예측구간은 실제 값의 " + Math.round(v.interval80_coverage * 100) + "%를 담았습니다(목표 80%). 기상·공연 변수를 더해도 전체 오차는 줄지 않았고, 관람객 규모가 큰 날의 저녁 오차만 줄었어요.";
     var ex = excluded.map(function (x) { return x + "월"; }).join("·");
     $("st-wish").innerHTML = [
-      "입출차 전체구역의 누락 보완: 원천 기록이 거의 없는 달(" + ex + "), 매월 말일, " + lastMonth + "/" + lastDay + " 이후 기록.",
+      "입출차 전체구역의 누락 보완: 원천 기록이 크게 적은 달(" + ex + "), 매월 말일, " + lastMonth + "/" + lastDay + " 이후 기록.",
       "아직 나가지 않은(주차 중인) 차량 행 포함, 또는 현재 재차 값을 따로 개방. 지금은 출차시간이 비어 있는 행이 하나도 없어, 출차 전 차량은 기록에 없는 것으로 보입니다.",
       "입출차 원천 중복(" + pct(c.dup_rate) + "%) 정리.",
       "공연 정보에 시작·종료 시각, 공연장 위치, 예매·예상 관람객 수. 지금은 시간별 관람객 수만 있습니다.",

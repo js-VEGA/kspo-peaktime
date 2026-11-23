@@ -1,11 +1,12 @@
-# 19. 기획서 v4 수치 대조표 (자동 생성)
+# 19. 기획서 v5 수치 대조표 (자동 생성)
 
-- 대상: `올팍피크타임_기획서_v4.docx` (본문 문단 231개, 숫자 토큰 403개, 고유 값 144개)
+- 대상: `올팍피크타임_기획서_v5.docx` (본문 문단 231개, 숫자 토큰 409개, 고유 값 144개)
 - 방법: docx 본문에서 숫자를 모두 뽑아, 서비스 JSON(`docs/data/peaktime_2025.json`)과 화면 로직으로 다시 계산한 값, `plan_assets/README_기획서자료.md`·`report/00_findings_and_direction.md`·`plan_assets/tables/`의 확정값, 안내문 텍스트와 대조했다. 데이터 값이 아닌 숫자(정의·규칙·날짜·번호)는 근거를 따로 적었다.
-- 생성 스크립트: 작업 폴더의 `check_v3.py`(저장소 밖, v4에도 같은 스크립트 사용). 수치 계산: `numbers_v3.js`(docs/index.html 의 PeakLogic + peaktime_2025.json + upcoming.json + data/interim/kopis_match.json). KOPIS 값은 report/21과도 대조했다.
+- 생성 스크립트: 작업 폴더의 `check_v3.py`(저장소 밖, v4·v5에도 같은 스크립트 사용). 수치 계산: `numbers_v3.js`(docs/index.html 의 PeakLogic + peaktime_2025.json + upcoming.json + data/interim/kopis_match.json). KOPIS 값은 report/21과도 대조했다.
 
 ## 결과
 
+- v5에서 바뀐 문장(3-5절 제외한 달)의 새 숫자 '4분의 1'·'11월 초순'·'12월 7일'은 값 단위 대조가 다른 문장의 같은 값과 겹치므로 `report/23_wording_fix.md`의 계산표(10월 대비 21~26%, 11/7 06시·12/7 16시까지 기록)와 따로 대조했다. 일치.
 - 출처에 없는 숫자: **0건**
 - 출처 값과 다른 숫자: **0건**
 - 링크 해시 5개 중 화면 예시·시나리오와 다른 것: **0건**
