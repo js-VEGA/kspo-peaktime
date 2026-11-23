@@ -1,8 +1,8 @@
-# 19. 기획서 v3 수치 대조표 (자동 생성)
+# 19. 기획서 v4 수치 대조표 (자동 생성)
 
-- 대상: `올팍피크타임_기획서_v3.docx` (본문 문단 235개, 숫자 토큰 399개, 고유 값 143개)
+- 대상: `올팍피크타임_기획서_v4.docx` (본문 문단 231개, 숫자 토큰 403개, 고유 값 144개)
 - 방법: docx 본문에서 숫자를 모두 뽑아, 서비스 JSON(`docs/data/peaktime_2025.json`)과 화면 로직으로 다시 계산한 값, `plan_assets/README_기획서자료.md`·`report/00_findings_and_direction.md`·`plan_assets/tables/`의 확정값, 안내문 텍스트와 대조했다. 데이터 값이 아닌 숫자(정의·규칙·날짜·번호)는 근거를 따로 적었다.
-- 생성 스크립트: 작업 폴더의 `check_v3.py`(저장소 밖). 수치 계산: `numbers_v3.js`(docs/index.html 의 PeakLogic + peaktime_2025.json + upcoming.json + data/interim/kopis_match.json). KOPIS 값은 report/21과도 대조했다.
+- 생성 스크립트: 작업 폴더의 `check_v3.py`(저장소 밖, v4에도 같은 스크립트 사용). 수치 계산: `numbers_v3.js`(docs/index.html 의 PeakLogic + peaktime_2025.json + upcoming.json + data/interim/kopis_match.json). KOPIS 값은 report/21과도 대조했다.
 
 ## 결과
 
@@ -62,6 +62,7 @@
 | 18 | 표1 퇴장 피크 시각 | JSON tiers.fri.out_mean 최대 시각 | 일치 |
 | 19 | 시나리오 A·1-2: 출발 입력 | 화면 로직(showsOn·suggestTier·visitorHeadline·planVisit) + JSON + upcoming.json | 일치 |
 | 19 | 시나리오 A·1-2: 대규모 붐빔 끝 | 화면 로직(showsOn·suggestTier·visitorHeadline·planVisit) + JSON + upcoming.json | 일치 |
+| 20 | 규칙·구조 | 저녁 17~21시 정의(17·18·19·20·21시 다섯 시각, 화면 로직 mean(a,17,21)) | 일치 |
 | 21 | 토·일 대규모 저녁 출차 봉우리 시각 | JSON tiers.weekend[3].out_mean 19~22시 최대 | 일치 |
 | 21 | KOPIS: 다가오는 공연 수 | upcoming.json meta (= report/21) | 일치 |
 | 22 | 시나리오 A·1-2: 나가기 편한 시각 | 화면 로직(showsOn·suggestTier·visitorHeadline·planVisit) + JSON + upcoming.json | 일치 |
